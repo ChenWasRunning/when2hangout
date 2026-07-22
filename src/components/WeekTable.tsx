@@ -1,6 +1,6 @@
 import { MEALS, WEEKDAY_SHORT_NAMES } from "../lib/dates";
 import { slotKey } from "../lib/dates";
-import type { Meal, WeekInfo } from "../types";
+import type { Meal, SelectedSlot, WeekInfo } from "../types";
 import { SlotButton } from "./SlotButton";
 
 type WeekTableProps = {
@@ -9,6 +9,7 @@ type WeekTableProps = {
   onToggle: (date: string, meal: Meal) => void;
   onPaintStart: (date: string, meal: Meal, selected: boolean) => void;
   onPaintEnter: (date: string, meal: Meal) => void;
+  onClearWeek: (slots: SelectedSlot[]) => void;
 };
 
 export function WeekTable({
@@ -17,38 +18,51 @@ export function WeekTable({
   onToggle,
   onPaintStart,
   onPaintEnter,
+  onClearWeek,
 }: WeekTableProps) {
+  const weekSlots = week.days.flatMap((day) => MEALS.map((meal) => ({ date: day.date, meal })));
+
   return (
     <section
       aria-labelledby={`week-${week.index}`}
-      className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+      className="rounded-lg border border-stone-200 bg-white p-2 shadow-sm sm:p-4"
     >
-      <h2 id={`week-${week.index}`} className="text-lg font-bold text-stone-950">
-        {week.title}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id={`week-${week.index}`} className="text-lg font-bold text-stone-950">
+          {week.title}
+        </h2>
+        <button
+          type="button"
+          aria-label={`清空第${week.index}周`}
+          onClick={() => onClearWeek(weekSlots)}
+          className="min-h-9 rounded-md border border-stone-300 bg-white px-3 text-sm font-bold text-stone-700"
+        >
+          清空
+        </button>
+      </div>
 
-      <div className="mt-4 overflow-x-auto md:hidden">
-        <div className="grid min-w-[430px] grid-cols-7 gap-2 pb-1">
+      <div className="mt-3 md:hidden">
+        <div className="grid w-full grid-cols-7 gap-0.5">
           {week.days.map((day) => (
             <div
               key={day.date}
               className={[
-                "rounded-lg border p-2",
+                "min-w-0 rounded-md border p-1",
                 day.isWeekend ? "border-amber-300 bg-amber-50" : "border-stone-200 bg-stone-50",
               ].join(" ")}
             >
-              <div className="mb-2 min-h-12 text-center">
-                <div className="text-xs font-bold text-stone-600">
+              <div className="mb-1 min-h-11 text-center">
+                <div className="text-[11px] font-bold leading-4 text-stone-600">
                   {WEEKDAY_SHORT_NAMES[day.weekdayIndex]}
                 </div>
-                <div className="text-sm font-black text-stone-950">
+                <div className="text-sm font-black leading-5 text-stone-950">
                   {day.month}/{day.day}
                 </div>
                 {day.isWeekend ? (
-                  <div className="text-[11px] font-semibold text-amber-800">周末</div>
+                  <div className="text-[10px] font-semibold leading-3 text-amber-800">周末</div>
                 ) : null}
               </div>
-              <div className="grid gap-2">
+              <div className="grid gap-1">
                 {MEALS.map((meal) => (
                   <SlotButton
                     key={meal}

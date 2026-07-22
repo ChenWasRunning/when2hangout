@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { QuickSelectPanel } from "./components/QuickSelectPanel";
 import { ResultsPage } from "./components/ResultsPage";
 import { SubmitPanel } from "./components/SubmitPanel";
 import { WeekTable } from "./components/WeekTable";
 import {
-  buildDateRange,
   buildWeeks,
   EVENT_END_DATE,
   EVENT_START_DATE,
@@ -51,7 +49,6 @@ export default function App({ api }: AppProps) {
   const paintModeRef = useRef<PaintMode | null>(null);
 
   const weeks = useMemo(() => buildWeeks(), []);
-  const days = useMemo(() => buildDateRange(), []);
 
   useEffect(() => {
     const onHashChange = () => setRoute(window.location.hash === "#results" ? "results" : "form");
@@ -170,27 +167,9 @@ export default function App({ api }: AppProps) {
     [paintSlot],
   );
 
-  const handleQuickApply = useCallback(
-    (startDate: string, endDate: string, meals: Meal[], selected: boolean) => {
-      const [rangeStart, rangeEnd] =
-        startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
-      const slots = days
-        .filter((day) => day.date >= rangeStart && day.date <= rangeEnd)
-        .flatMap((day) => meals.map((meal) => ({ date: day.date, meal })));
-
-      setSubmitState((current) => (current === "success" ? "idle" : current));
-      setSelectedKeys((current) => setSlotsSelected(current, slots, selected));
-    },
-    [days],
-  );
-
-  const handleClearAll = useCallback(() => {
-    if (!window.confirm("是否要清空所有已选日期？")) {
-      return;
-    }
-
+  const handleClearWeek = useCallback((slots: { date: string; meal: Meal }[]) => {
     setSubmitState((current) => (current === "success" ? "idle" : current));
-    setSelectedKeys(new Set());
+    setSelectedKeys((current) => setSlotsSelected(current, slots, false));
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -254,7 +233,7 @@ export default function App({ api }: AppProps) {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+    <main className="mx-auto max-w-5xl px-3 py-5 sm:px-6 sm:py-6">
       <header className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
         <p className="text-sm font-bold text-teal-800">微信群分享版</p>
         <h1 className="mt-1 text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
@@ -285,7 +264,6 @@ export default function App({ api }: AppProps) {
         <p className="mt-2 text-sm leading-6 text-stone-600">
           点击单元格可以切换状态；按住一个单元格拖过其它单元格，可以像涂色一样快速选择或取消一片时间。带有“周末”文字的日期为周六或周日。
         </p>
-        <QuickSelectPanel onApply={handleQuickApply} onClearAll={handleClearAll} />
         <div className="mt-4 grid gap-5">
           {weeks.map((week) => (
             <WeekTable
@@ -295,6 +273,7 @@ export default function App({ api }: AppProps) {
               onToggle={handleToggle}
               onPaintStart={handlePaintStart}
               onPaintEnter={handlePaintEnter}
+              onClearWeek={handleClearWeek}
             />
           ))}
         </div>

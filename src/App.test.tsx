@@ -60,36 +60,24 @@ describe("App 提交流程", () => {
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
-  it("可以一键选中 7/30 到 8/6 的午餐和晚餐", async () => {
+  it("可以清空某一周，且不会影响其它周选择或自动提交", async () => {
     const user = userEvent.setup();
     const api = createApi();
     render(<App api={api} />);
 
-    await user.click(screen.getByRole("button", { name: "选中这段时间" }));
-    await user.type(screen.getByLabelText("你的名字"), "小陈");
-    await user.click(screen.getByRole("button", { name: "提交时间" }));
+    await user.click(firstSlot("slot-2026-08-10:lunch"));
+    await user.click(firstSlot("slot-2026-08-11:dinner"));
+    await user.click(firstSlot("slot-2026-08-17:lunch"));
 
-    await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(1));
-    const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
-    expect(payload.slots).toHaveLength(16);
-    expect(payload.slots[0]).toEqual({ date: "2026-07-30", meal: "lunch" });
-    expect(payload.slots.at(-1)).toEqual({ date: "2026-08-06", meal: "dinner" });
-  });
+    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-17:lunch")).toHaveAttribute("aria-pressed", "true");
 
-  it("清空所有选择前会确认，确认后清空且不会自动提交", async () => {
-    const user = userEvent.setup();
-    const api = createApi();
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<App api={api} />);
+    await user.click(screen.getByRole("button", { name: "清空第3周" }));
 
-    await user.click(screen.getByRole("button", { name: "选中这段时间" }));
-    expect(firstSlot("slot-2026-07-30:lunch")).toHaveAttribute("aria-pressed", "true");
-
-    await user.click(screen.getByRole("button", { name: "清空所有选择" }));
-
-    expect(confirmSpy).toHaveBeenCalledWith("是否要清空所有已选日期？");
-    expect(firstSlot("slot-2026-07-30:lunch")).toHaveAttribute("aria-pressed", "false");
-    expect(firstSlot("slot-2026-08-06:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(window.confirm).not.toHaveBeenCalledWith("是否要清空所有已选日期？");
+    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-11:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-17:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 

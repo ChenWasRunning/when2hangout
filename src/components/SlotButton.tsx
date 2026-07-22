@@ -39,14 +39,14 @@ export function SlotButton({
       }}
       onPointerEnter={() => onPaintEnter?.(date, meal)}
       className={[
-        "min-h-12 w-full touch-none select-none rounded-md border px-2 py-2 text-sm font-semibold transition",
+        "min-h-11 w-full touch-none select-none rounded-md border px-1 py-2 text-xs font-semibold transition sm:min-h-12 sm:px-2 sm:text-sm",
         "focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-teal-200",
         selected
           ? "border-teal-700 bg-teal-700 text-white shadow-sm"
           : "border-stone-300 bg-white text-stone-800 active:bg-stone-100",
       ].join(" ")}
     >
-      <span className="flex items-center justify-center gap-1">
+      <span className="flex items-center justify-center gap-0.5 whitespace-nowrap sm:gap-1">
         <span aria-hidden="true">{selected ? "✓" : "○"}</span>
         <span>{selected ? "有空" : label}</span>
       </span>
