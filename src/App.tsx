@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NameLookupPanel } from "./components/NameLookupPanel";
 import { ResultsPage } from "./components/ResultsPage";
 import { SubmitPanel } from "./components/SubmitPanel";
 import { WeekTable } from "./components/WeekTable";
@@ -46,6 +47,8 @@ export default function App({ api }: AppProps) {
   const [isExistingParticipant, setIsExistingParticipant] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [lookupMessage, setLookupMessage] = useState<string | null>(null);
+  const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [lockedWeekIndexes, setLockedWeekIndexes] = useState<Set<number>>(() => new Set());
   const paintModeRef = useRef<PaintMode | null>(null);
 
@@ -185,6 +188,44 @@ export default function App({ api }: AppProps) {
     });
   }, []);
 
+  const handleLookupByName = useCallback(async () => {
+    if (isLookupLoading) {
+      return;
+    }
+
+    const normalizedName = normalizeDisplayName(displayName);
+    const validationError = validateDisplayName(normalizedName);
+    setNameError(validationError);
+    setLookupMessage(null);
+    setSubmitError(null);
+
+    if (validationError) {
+      return;
+    }
+
+    setIsLookupLoading(true);
+    try {
+      const submission = await api.findSubmissionByName(normalizedName);
+      if (!submission) {
+        setLookupMessage("没有找到这个名字的提交记录。");
+        return;
+      }
+
+      setDisplayName(submission.displayName);
+      setSelectedKeys(slotsToKeys(submission.slots));
+      setSubmitState((current) => (current === "success" ? "idle" : current));
+      setLookupMessage("已加载这个名字最近一次提交的时间表。");
+    } catch (error) {
+      if (error instanceof MissingSupabaseConfigError) {
+        setLookupMessage("Supabase 配置缺失，请检查环境变量。");
+      } else {
+        setLookupMessage("搜索失败，请重试。");
+      }
+    } finally {
+      setIsLookupLoading(false);
+    }
+  }, [api, displayName, isLookupLoading]);
+
   const handleSubmit = useCallback(async () => {
     if (submitState === "submitting") {
       return;
@@ -251,7 +292,7 @@ export default function App({ api }: AppProps) {
         <p className="text-sm font-bold text-teal-800">微信群分享版</p>
         <h1 className="mt-1 text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-stone-700">
-          请选择你在7月27日至8月30日期间有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期。完成选择后，请在页面底部输入名字并点击提交。
+          请先输入你的名字，再选择7月27日至8月30日期间有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期。完成选择后，请在页面底部点击提交。
         </p>
         <p className="mt-3 inline-flex rounded-full bg-teal-50 px-3 py-2 text-sm font-bold text-teal-900">
           固定日期：{EVENT_START_DATE} 至 {EVENT_END_DATE}
@@ -269,6 +310,20 @@ export default function App({ api }: AppProps) {
           {restoreMessage}
         </div>
       ) : null}
+
+      <NameLookupPanel
+        displayName={displayName}
+        nameError={nameError}
+        lookupMessage={lookupMessage}
+        isLookupLoading={isLookupLoading}
+        onNameChange={(value) => {
+          setDisplayName(value);
+          setNameError(null);
+          setLookupMessage(null);
+          setSubmitState((current) => (current === "success" ? "idle" : current));
+        }}
+        onLookup={handleLookupByName}
+      />
 
       <section aria-labelledby="choose-title" className="mt-6">
         <h2 id="choose-title" className="text-2xl font-black text-stone-950">
@@ -296,17 +351,10 @@ export default function App({ api }: AppProps) {
 
       <div className="mt-6">
         <SubmitPanel
-          displayName={displayName}
-          nameError={nameError}
           isExistingParticipant={isExistingParticipant}
           isSubmitting={submitState === "submitting"}
           submitSucceeded={submitState === "success"}
           submitError={submitState === "error" ? submitError : null}
-          onNameChange={(value) => {
-            setDisplayName(value);
-            setNameError(null);
-            setSubmitState((current) => (current === "success" ? "idle" : current));
-          }}
           onSubmit={handleSubmit}
           onEdit={() => setSubmitState("idle")}
           onViewStats={showResults}

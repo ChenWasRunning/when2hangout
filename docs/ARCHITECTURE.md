@@ -14,8 +14,9 @@
 ## 前端结构
 
 - `src/App.tsx`：主填写页、提交状态、恢复旧提交、路由切换。
+- `src/components/NameLookupPanel.tsx`：顶部姓名输入与按姓名搜索。
 - `src/components/WeekTable.tsx`：五周时间选择表。
-- `src/components/SubmitPanel.tsx`：姓名输入与提交区。
+- `src/components/SubmitPanel.tsx`：底部备注与提交区。
 - `src/components/ResultsPage.tsx`：统计结果页。
 - `src/lib/dates.ts`：固定日期、五周拆分、星期和时段生成。
 - `src/lib/selection.ts`：slot key、选择切换、payload 去重和校验。
@@ -44,6 +45,8 @@ EVENT_END_DATE = "2026-08-30";
 8. Edge Function 哈希 token。
 9. Edge Function 调用 `submit_availability` RPC。
 10. RPC 在一次数据库函数调用内替换该参与者完整 availability。
+
+顶部姓名搜索调用 `submission-by-name` Edge Function。它只用于加载同名最近一次提交到当前页面，方便用户参考和修改；保存仍然必须由用户点击底部提交按钮触发。
 
 ## 统计流程
 

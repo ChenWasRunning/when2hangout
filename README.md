@@ -16,10 +16,11 @@
 
 - 固定显示五个自然周，每周从星期一到星期日。
 - 每天只有两个时段：午餐、晚餐。
+- 姓名输入位于页面顶部，可以按姓名搜索并加载该名字最近一次提交。
 - 支持点击单格切换，也支持按住拖过多个格子进行涂抹选择。
 - 支持在每周右上角一键清空该周已选择的午餐/晚餐。
 - 支持每周锁定；锁定后这一周不会被点击或拖拽涂抹改动，避免手机滑动时误触。
-- 参与者先选择时间，再在页面底部输入名字并点击提交。
+- 参与者先在顶部输入名字，再选择时间，最后在页面底部点击提交。
 - 点击提交前不会写入 Supabase。
 - 首次成功提交后，浏览器 localStorage 保存随机 participant token。
 - 数据库只保存 token 的服务端哈希，不保存原始 token。
@@ -74,6 +75,7 @@ supabase/migrations/20260722000000_initial_schema.sql
 - `meal_type`
 - `submit_availability`
 - `get_my_submission`
+- `get_submission_by_name`
 - `get_public_stats`
 - RLS、约束、触发器和 RPC 权限
 
@@ -91,6 +93,7 @@ supabase secrets set PARTICIPANT_TOKEN_PEPPER=replace-with-a-long-random-secret
 ```bash
 supabase functions deploy submit-availability
 supabase functions deploy my-submission
+supabase functions deploy submission-by-name
 supabase functions deploy stats
 ```
 
@@ -98,6 +101,7 @@ Edge Functions 用途：
 
 - `submit-availability`：验证姓名、token、slots，哈希 token，调用数据库事务式 RPC。
 - `my-submission`：用 token 哈希读取当前浏览器参与者自己的提交。
+- `submission-by-name`：按显示姓名精确查找最近一次提交，便于换设备时加载参考。
 - `stats`：返回统计页需要的聚合数据，不暴露 token hash 或内部字段。
 
 ## GitHub Pages 部署
@@ -144,6 +148,8 @@ participant_token_hash
 
 数据库启用 RLS，并撤销 anon/authenticated 对 `participants` 和 `availability` 的直接访问。普通前端用户不能直接读取 token hash、修改他人记录或删除他人数据。
 
+按姓名搜索只返回该姓名最近一次提交的显示姓名和可用时段，不返回 token hash、participant id 或其它内部字段。同名时返回最近更新的一份。
+
 `submit_availability` RPC 会在一次数据库函数调用中更新参与者姓名、删除旧 availability、插入本次完整选择。这样更新提交时后台最终记录与本次完整提交一致。
 
 已知限制：
@@ -185,6 +191,7 @@ npm run build
 - 测试按住一个午餐/晚餐格子拖过其它格子，确认可以连续涂抹。
 - 测试每周右上角“清空”，确认只清空当前周。
 - 测试每周右上角“🔓 锁定 / 🔒 已锁”，确认锁定后滑动或点击不会改动该周。
+- 测试顶部姓名搜索，确认能加载同名最近一次提交。
 - 关闭页面后再次打开，确认 localStorage token 能恢复旧提交。
 - 从另一台手机打开同一链接，确认作为新参与者提交。
 - 打开统计页，确认人数和名单正确更新。

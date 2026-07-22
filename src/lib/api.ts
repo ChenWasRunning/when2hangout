@@ -37,6 +37,10 @@ export const supabaseApi: AppApi = {
     return invokeFunction<MySubmission | null>("my-submission", { participantToken });
   },
 
+  async findSubmissionByName(displayName: string): Promise<MySubmission | null> {
+    return invokeFunction<MySubmission | null>("submission-by-name", { displayName });
+  },
+
   async submitAvailability(payload: SubmitPayload): Promise<void> {
     await invokeFunction("submit-availability", {
       participantToken: payload.participantToken,

@@ -12,6 +12,7 @@ function createApi(overrides: Partial<AppApi> = {}): AppApi {
 
   return {
     getMySubmission: vi.fn().mockResolvedValue(null),
+    findSubmissionByName: vi.fn().mockResolvedValue(null),
     submitAvailability: vi.fn().mockResolvedValue(undefined),
     getStats: vi.fn().mockResolvedValue(emptyStats),
     ...overrides,
@@ -79,6 +80,37 @@ describe("App 提交流程", () => {
     expect(firstSlot("slot-2026-08-11:dinner")).toHaveAttribute("aria-pressed", "false");
     expect(firstSlot("slot-2026-08-17:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
+  it("可以按姓名搜索并加载已经提交过的时间表", async () => {
+    const user = userEvent.setup();
+    const api = createApi({
+      findSubmissionByName: vi.fn().mockResolvedValue({
+        displayName: "小陈",
+        slots: [
+          { date: "2026-08-10", meal: "lunch" },
+          { date: "2026-08-11", meal: "dinner" },
+        ],
+      }),
+    });
+    render(<App api={api} />);
+
+    await user.type(screen.getByLabelText("你的名字"), "小陈");
+    await user.click(screen.getByRole("button", { name: "搜索" }));
+
+    await waitFor(() => expect(api.findSubmissionByName).toHaveBeenCalledWith("小陈"));
+    expect(await screen.findByText("已加载这个名字最近一次提交的时间表。")).toBeInTheDocument();
+    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-11:dinner")).toHaveAttribute("aria-pressed", "true");
+    expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
+  it("底部提交区不再出现姓名输入框", () => {
+    const api = createApi();
+    render(<App api={api} />);
+
+    expect(screen.getAllByLabelText("你的名字")).toHaveLength(1);
+    expect(screen.getByText("提交你的时间")).toBeInTheDocument();
   });
 
   it("锁定某一周后，点击和涂抹都不会修改该周", async () => {

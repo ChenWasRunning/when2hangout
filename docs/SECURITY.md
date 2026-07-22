@@ -44,6 +44,8 @@ sha256(PARTICIPANT_TOKEN_PEPPER + ":" + participantToken)
 - 删除其他参与者
 - 直接写入 availability
 
+按姓名搜索会返回该显示姓名最近一次提交的公开可用时段。统计页本身已经公开展示每个时段对应的参与者姓名，因此这个功能不暴露 token hash 或 service-role key，但它不适合作为身份验证方式。
+
 ## Edge Functions
 
 Edge Functions 使用 service-role key 调用数据库 RPC。这样可以在服务端完成 token 验证、数据校验和一致性更新，同时避免把 service-role key 暴露给浏览器。

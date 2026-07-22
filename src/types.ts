@@ -44,6 +44,7 @@ export type SubmitPayload = {
 
 export type AppApi = {
   getMySubmission: (participantToken: string) => Promise<MySubmission | null>;
+  findSubmissionByName: (displayName: string) => Promise<MySubmission | null>;
   submitAvailability: (payload: SubmitPayload) => Promise<void>;
   getStats: () => Promise<StatsResponse>;
 };
