@@ -6,18 +6,22 @@ import { SlotButton } from "./SlotButton";
 type WeekTableProps = {
   week: WeekInfo;
   selectedKeys: Set<string>;
+  locked: boolean;
   onToggle: (date: string, meal: Meal) => void;
   onPaintStart: (date: string, meal: Meal, selected: boolean) => void;
   onPaintEnter: (date: string, meal: Meal) => void;
+  onToggleLock: (weekIndex: number) => void;
   onClearWeek: (slots: SelectedSlot[]) => void;
 };
 
 export function WeekTable({
   week,
   selectedKeys,
+  locked,
   onToggle,
   onPaintStart,
   onPaintEnter,
+  onToggleLock,
   onClearWeek,
 }: WeekTableProps) {
   const weekSlots = week.days.flatMap((day) => MEALS.map((meal) => ({ date: day.date, meal })));
@@ -28,17 +32,34 @@ export function WeekTable({
       className="rounded-lg border border-stone-200 bg-white p-2 shadow-sm sm:p-4"
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 id={`week-${week.index}`} className="text-lg font-bold text-stone-950">
+        <h2 id={`week-${week.index}`} className="min-w-0 flex-1 text-lg font-bold text-stone-950">
           {week.title}
         </h2>
-        <button
-          type="button"
-          aria-label={`清空第${week.index}周`}
-          onClick={() => onClearWeek(weekSlots)}
-          className="min-h-9 rounded-md border border-stone-300 bg-white px-3 text-sm font-bold text-stone-700"
-        >
-          清空
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label={locked ? `解锁第${week.index}周` : `锁定第${week.index}周`}
+            aria-pressed={locked}
+            onClick={() => onToggleLock(week.index)}
+            className={[
+              "min-h-9 rounded-md border px-2 text-sm font-bold sm:px-3",
+              locked
+                ? "border-teal-700 bg-teal-700 text-white"
+                : "border-stone-300 bg-white text-stone-700",
+            ].join(" ")}
+          >
+            <span aria-hidden="true">{locked ? "🔒" : "🔓"}</span>
+            <span className="ml-1">{locked ? "已锁" : "锁定"}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={`清空第${week.index}周`}
+            onClick={() => onClearWeek(weekSlots)}
+            className="min-h-9 rounded-md border border-stone-300 bg-white px-3 text-sm font-bold text-stone-700"
+          >
+            清空
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 md:hidden">
@@ -68,6 +89,7 @@ export function WeekTable({
                     key={meal}
                     date={day.date}
                     meal={meal}
+                    locked={locked}
                     selected={selectedKeys.has(slotKey({ date: day.date, meal }))}
                     onToggle={onToggle}
                     onPaintStart={onPaintStart}
@@ -120,6 +142,7 @@ export function WeekTable({
                     <SlotButton
                       date={day.date}
                       meal={meal}
+                      locked={locked}
                       selected={selectedKeys.has(slotKey({ date: day.date, meal }))}
                       onToggle={onToggle}
                       onPaintStart={onPaintStart}

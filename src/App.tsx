@@ -46,6 +46,7 @@ export default function App({ api }: AppProps) {
   const [isExistingParticipant, setIsExistingParticipant] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [lockedWeekIndexes, setLockedWeekIndexes] = useState<Set<number>>(() => new Set());
   const paintModeRef = useRef<PaintMode | null>(null);
 
   const weeks = useMemo(() => buildWeeks(), []);
@@ -121,7 +122,7 @@ export default function App({ api }: AppProps) {
 
       const date = slotElement.dataset.slotDate;
       const meal = slotElement.dataset.slotMeal;
-      if (!date || !meal || !isValidMeal(meal)) {
+      if (!date || !meal || !isValidMeal(meal) || slotElement.dataset.slotLocked === "true") {
         return;
       }
 
@@ -170,6 +171,18 @@ export default function App({ api }: AppProps) {
   const handleClearWeek = useCallback((slots: { date: string; meal: Meal }[]) => {
     setSubmitState((current) => (current === "success" ? "idle" : current));
     setSelectedKeys((current) => setSlotsSelected(current, slots, false));
+  }, []);
+
+  const handleToggleWeekLock = useCallback((weekIndex: number) => {
+    setLockedWeekIndexes((current) => {
+      const next = new Set(current);
+      if (next.has(weekIndex)) {
+        next.delete(weekIndex);
+      } else {
+        next.add(weekIndex);
+      }
+      return next;
+    });
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -270,9 +283,11 @@ export default function App({ api }: AppProps) {
               key={week.index}
               week={week}
               selectedKeys={selectedKeys}
+              locked={lockedWeekIndexes.has(week.index)}
               onToggle={handleToggle}
               onPaintStart={handlePaintStart}
               onPaintEnter={handlePaintEnter}
+              onToggleLock={handleToggleWeekLock}
               onClearWeek={handleClearWeek}
             />
           ))}

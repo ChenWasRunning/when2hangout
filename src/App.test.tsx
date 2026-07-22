@@ -81,6 +81,31 @@ describe("App 提交流程", () => {
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
+  it("锁定某一周后，点击和涂抹都不会修改该周", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.click(firstSlot("slot-2026-08-10:lunch"));
+    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "锁定第3周" }));
+    expect(screen.getByRole("button", { name: "解锁第3周" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.click(firstSlot("slot-2026-08-10:lunch"));
+    fireEvent.pointerDown(firstSlot("slot-2026-08-11:dinner"));
+    fireEvent.pointerEnter(firstSlot("slot-2026-08-12:dinner"));
+    fireEvent.pointerUp(window);
+
+    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-11:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-12:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
   it("未填写姓名时不能提交", async () => {
     const user = userEvent.setup();
     const api = createApi();
