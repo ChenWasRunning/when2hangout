@@ -330,7 +330,7 @@ export default function App({ api }: AppProps) {
           请选择你有空的时间
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          点击单元格可以切换状态；按住一个单元格拖过其它单元格，可以像涂色一样快速选择或取消一片时间。带有“周末”文字的日期为周六或周日。
+          点击单元格可以切换状态；按住一个单元格拖过其它单元格，可以像涂色一样快速选择或取消一片时间。淡黄色日期为周六或周日。
         </p>
         <div className="mt-4 grid gap-5">
           {weeks.map((week) => (

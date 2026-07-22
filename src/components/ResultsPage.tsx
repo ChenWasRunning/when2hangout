@@ -135,7 +135,6 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
                     </h3>
                     <p className="text-sm font-semibold text-stone-600">
                       {day.weekdayName}
-                      {day.isWeekend ? "｜周末" : ""}
                     </p>
                     <div className="mt-3 grid gap-2">
                       {MEALS.map((meal) => (

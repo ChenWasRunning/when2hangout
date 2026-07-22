@@ -79,9 +79,6 @@ export function WeekTable({
                 <div className="text-sm font-black leading-5 text-stone-950">
                   {day.month}/{day.day}
                 </div>
-                {day.isWeekend ? (
-                  <div className="text-[10px] font-semibold leading-3 text-amber-800">周末</div>
-                ) : null}
               </div>
               <div className="grid gap-1">
                 {MEALS.map((meal) => (
@@ -123,7 +120,6 @@ export function WeekTable({
                 >
                   <span className="block">{day.weekdayName}</span>
                   <span className="block text-base font-black">{day.month}/{day.day}</span>
-                  {day.isWeekend ? <span className="block text-xs">周末</span> : null}
                 </th>
               ))}
             </tr>
