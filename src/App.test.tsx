@@ -76,6 +76,23 @@ describe("App 提交流程", () => {
     expect(payload.slots.at(-1)).toEqual({ date: "2026-08-06", meal: "dinner" });
   });
 
+  it("清空所有选择前会确认，确认后清空且不会自动提交", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<App api={api} />);
+
+    await user.click(screen.getByRole("button", { name: "选中这段时间" }));
+    expect(firstSlot("slot-2026-07-30:lunch")).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "清空所有选择" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith("是否要清空所有已选日期？");
+    expect(firstSlot("slot-2026-07-30:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-06:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
   it("未填写姓名时不能提交", async () => {
     const user = userEvent.setup();
     const api = createApi();

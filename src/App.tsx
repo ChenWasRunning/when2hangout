@@ -184,6 +184,15 @@ export default function App({ api }: AppProps) {
     [days],
   );
 
+  const handleClearAll = useCallback(() => {
+    if (!window.confirm("是否要清空所有已选日期？")) {
+      return;
+    }
+
+    setSubmitState((current) => (current === "success" ? "idle" : current));
+    setSelectedKeys(new Set());
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     if (submitState === "submitting") {
       return;
@@ -250,7 +259,7 @@ export default function App({ api }: AppProps) {
         <p className="text-sm font-bold text-teal-800">微信群分享版</p>
         <h1 className="mt-1 text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-stone-700">
-          请选择你在7月27日至8月30日期间有空的午餐和晚餐时间。完成选择后，请在页面底部输入名字并点击提交。
+          请选择你在7月27日至8月30日期间有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期。完成选择后，请在页面底部输入名字并点击提交。
         </p>
         <p className="mt-3 inline-flex rounded-full bg-teal-50 px-3 py-2 text-sm font-bold text-teal-900">
           固定日期：{EVENT_START_DATE} 至 {EVENT_END_DATE}
@@ -276,7 +285,7 @@ export default function App({ api }: AppProps) {
         <p className="mt-2 text-sm leading-6 text-stone-600">
           点击单元格可以切换状态；按住一个单元格拖过其它单元格，可以像涂色一样快速选择或取消一片时间。带有“周末”文字的日期为周六或周日。
         </p>
-        <QuickSelectPanel onApply={handleQuickApply} />
+        <QuickSelectPanel onApply={handleQuickApply} onClearAll={handleClearAll} />
         <div className="mt-4 grid gap-5">
           {weeks.map((week) => (
             <WeekTable

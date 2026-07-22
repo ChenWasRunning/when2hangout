@@ -4,9 +4,10 @@ import type { Meal } from "../types";
 
 type QuickSelectPanelProps = {
   onApply: (startDate: string, endDate: string, meals: Meal[], selected: boolean) => void;
+  onClearAll: () => void;
 };
 
-export function QuickSelectPanel({ onApply }: QuickSelectPanelProps) {
+export function QuickSelectPanel({ onApply, onClearAll }: QuickSelectPanelProps) {
   const days = useMemo(() => buildDateRange(), []);
   const [startDate, setStartDate] = useState("2026-07-30");
   const [endDate, setEndDate] = useState("2026-08-06");
@@ -41,7 +42,7 @@ export function QuickSelectPanel({ onApply }: QuickSelectPanelProps) {
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(130px,0.75fr)_minmax(130px,0.75fr)_minmax(260px,1fr)_auto] md:items-end">
         <label className="grid gap-2 text-sm font-bold text-stone-800">
           开始日期
           <select
@@ -75,7 +76,7 @@ export function QuickSelectPanel({ onApply }: QuickSelectPanelProps) {
         <fieldset className="rounded-md border border-teal-200 bg-white px-3 py-2">
           <legend className="px-1 text-sm font-bold text-stone-800">选择时段</legend>
           <div className="grid grid-cols-2 gap-3">
-            <label className="flex min-h-10 items-center gap-2 text-sm font-bold text-stone-800">
+            <label className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 text-sm font-bold text-stone-800">
               <input
                 type="checkbox"
                 checked={includeLunch}
@@ -84,7 +85,7 @@ export function QuickSelectPanel({ onApply }: QuickSelectPanelProps) {
               />
               {MEAL_LABEL.lunch}
             </label>
-            <label className="flex min-h-10 items-center gap-2 text-sm font-bold text-stone-800">
+            <label className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 text-sm font-bold text-stone-800">
               <input
                 type="checkbox"
                 checked={includeDinner}
@@ -95,6 +96,14 @@ export function QuickSelectPanel({ onApply }: QuickSelectPanelProps) {
             </label>
           </div>
         </fieldset>
+
+        <button
+          type="button"
+          onClick={onClearAll}
+          className="min-h-12 rounded-md border border-red-200 bg-white px-4 font-bold text-red-700"
+        >
+          清空所有选择
+        </button>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
