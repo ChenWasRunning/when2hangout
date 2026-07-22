@@ -15,6 +15,41 @@ export function toggleSlot(selectedKeys: Set<string>, slot: SelectedSlot): Set<s
   return next;
 }
 
+export function setSlotSelected(
+  selectedKeys: Set<string>,
+  slot: SelectedSlot,
+  selected: boolean,
+): Set<string> {
+  validateSlot(slot);
+  const next = new Set(selectedKeys);
+  const key = slotKey(slot);
+
+  if (selected) {
+    next.add(key);
+  } else {
+    next.delete(key);
+  }
+
+  return next;
+}
+
+export function setSlotsSelected(
+  selectedKeys: Set<string>,
+  slots: SelectedSlot[],
+  selected: boolean,
+): Set<string> {
+  const next = new Set(selectedKeys);
+  for (const slot of validateSlots(slots)) {
+    const key = slotKey(slot);
+    if (selected) {
+      next.add(key);
+    } else {
+      next.delete(key);
+    }
+  }
+  return next;
+}
+
 export function slotsToKeys(slots: SelectedSlot[]): Set<string> {
   const keys = new Set<string>();
   for (const slot of slots) {

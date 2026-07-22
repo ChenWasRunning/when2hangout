@@ -7,9 +7,17 @@ type WeekTableProps = {
   week: WeekInfo;
   selectedKeys: Set<string>;
   onToggle: (date: string, meal: Meal) => void;
+  onPaintStart: (date: string, meal: Meal, selected: boolean) => void;
+  onPaintEnter: (date: string, meal: Meal) => void;
 };
 
-export function WeekTable({ week, selectedKeys, onToggle }: WeekTableProps) {
+export function WeekTable({
+  week,
+  selectedKeys,
+  onToggle,
+  onPaintStart,
+  onPaintEnter,
+}: WeekTableProps) {
   return (
     <section
       aria-labelledby={`week-${week.index}`}
@@ -48,6 +56,8 @@ export function WeekTable({ week, selectedKeys, onToggle }: WeekTableProps) {
                     meal={meal}
                     selected={selectedKeys.has(slotKey({ date: day.date, meal }))}
                     onToggle={onToggle}
+                    onPaintStart={onPaintStart}
+                    onPaintEnter={onPaintEnter}
                   />
                 ))}
               </div>
@@ -98,6 +108,8 @@ export function WeekTable({ week, selectedKeys, onToggle }: WeekTableProps) {
                       meal={meal}
                       selected={selectedKeys.has(slotKey({ date: day.date, meal }))}
                       onToggle={onToggle}
+                      onPaintStart={onPaintStart}
+                      onPaintEnter={onPaintEnter}
                     />
                   </td>
                 ))}

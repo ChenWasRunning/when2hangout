@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { QuickSelectPanel } from "./components/QuickSelectPanel";
 import { ResultsPage } from "./components/ResultsPage";
 import { SubmitPanel } from "./components/SubmitPanel";
 import { WeekTable } from "./components/WeekTable";
-import { buildWeeks, EVENT_END_DATE, EVENT_START_DATE } from "./lib/dates";
+import {
+  buildDateRange,
+  buildWeeks,
+  EVENT_END_DATE,
+  EVENT_START_DATE,
+  isValidMeal,
+  slotKey,
+} from "./lib/dates";
 import { MissingSupabaseConfigError } from "./lib/api";
 import { validateDisplayName, normalizeDisplayName } from "./lib/name";
 import {
@@ -10,7 +18,14 @@ import {
   getStoredParticipantToken,
   saveParticipantToken,
 } from "./lib/participantToken";
-import { keysToSlots, slotsToKeys, toggleSlot, validateSlots } from "./lib/selection";
+import {
+  keysToSlots,
+  setSlotSelected,
+  setSlotsSelected,
+  slotsToKeys,
+  toggleSlot,
+  validateSlots,
+} from "./lib/selection";
 import type { AppApi, Meal } from "./types";
 
 type AppProps = {
@@ -18,6 +33,10 @@ type AppProps = {
 };
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
+type PaintMode = {
+  selected: boolean;
+  lastKey: string | null;
+};
 
 export default function App({ api }: AppProps) {
   const [route, setRoute] = useState(() => (window.location.hash === "#results" ? "results" : "form"));
@@ -29,8 +48,10 @@ export default function App({ api }: AppProps) {
   const [isExistingParticipant, setIsExistingParticipant] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const paintModeRef = useRef<PaintMode | null>(null);
 
   const weeks = useMemo(() => buildWeeks(), []);
+  const days = useMemo(() => buildDateRange(), []);
 
   useEffect(() => {
     const onHashChange = () => setRoute(window.location.hash === "#results" ? "results" : "form");
@@ -68,10 +89,100 @@ export default function App({ api }: AppProps) {
     };
   }, [api]);
 
+  const paintSlot = useCallback((date: string, meal: Meal, selected: boolean) => {
+    const key = slotKey({ date, meal });
+    const paintMode = paintModeRef.current;
+    if (paintMode?.lastKey === key) {
+      return;
+    }
+
+    if (paintMode) {
+      paintMode.lastKey = key;
+    }
+
+    setSubmitState((current) => (current === "success" ? "idle" : current));
+    setSelectedKeys((current) => setSlotSelected(current, { date, meal }, selected));
+  }, []);
+
+  useEffect(() => {
+    const stopPainting = () => {
+      paintModeRef.current = null;
+    };
+
+    const continueTouchPainting = (event: PointerEvent) => {
+      const paintMode = paintModeRef.current;
+      if (!paintMode) {
+        return;
+      }
+
+      event.preventDefault();
+      const element = document.elementFromPoint(event.clientX, event.clientY);
+      const slotElement = element?.closest("[data-slot-date][data-slot-meal]");
+      if (!(slotElement instanceof HTMLElement)) {
+        return;
+      }
+
+      const date = slotElement.dataset.slotDate;
+      const meal = slotElement.dataset.slotMeal;
+      if (!date || !meal || !isValidMeal(meal)) {
+        return;
+      }
+
+      paintSlot(date, meal, paintMode.selected);
+    };
+
+    window.addEventListener("pointermove", continueTouchPainting, { passive: false });
+    window.addEventListener("pointerup", stopPainting);
+    window.addEventListener("pointercancel", stopPainting);
+
+    return () => {
+      window.removeEventListener("pointermove", continueTouchPainting);
+      window.removeEventListener("pointerup", stopPainting);
+      window.removeEventListener("pointercancel", stopPainting);
+    };
+  }, [paintSlot]);
+
   const handleToggle = useCallback((date: string, meal: Meal) => {
     setSubmitState((current) => (current === "success" ? "idle" : current));
     setSelectedKeys((current) => toggleSlot(current, { date, meal }));
   }, []);
+
+  const handlePaintStart = useCallback(
+    (date: string, meal: Meal, selected: boolean) => {
+      const nextSelected = !selected;
+      paintModeRef.current = {
+        selected: nextSelected,
+        lastKey: null,
+      };
+      paintSlot(date, meal, nextSelected);
+    },
+    [paintSlot],
+  );
+
+  const handlePaintEnter = useCallback(
+    (date: string, meal: Meal) => {
+      const paintMode = paintModeRef.current;
+      if (!paintMode) {
+        return;
+      }
+      paintSlot(date, meal, paintMode.selected);
+    },
+    [paintSlot],
+  );
+
+  const handleQuickApply = useCallback(
+    (startDate: string, endDate: string, meals: Meal[], selected: boolean) => {
+      const [rangeStart, rangeEnd] =
+        startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
+      const slots = days
+        .filter((day) => day.date >= rangeStart && day.date <= rangeEnd)
+        .flatMap((day) => meals.map((meal) => ({ date: day.date, meal })));
+
+      setSubmitState((current) => (current === "success" ? "idle" : current));
+      setSelectedKeys((current) => setSlotsSelected(current, slots, selected));
+    },
+    [days],
+  );
 
   const handleSubmit = useCallback(async () => {
     if (submitState === "submitting") {
@@ -163,8 +274,9 @@ export default function App({ api }: AppProps) {
           请选择你有空的时间
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          点击午餐或晚餐单元格即可切换状态。带有“周末”文字的日期为周六或周日。
+          点击单元格可以切换状态；按住一个单元格拖过其它单元格，可以像涂色一样快速选择或取消一片时间。带有“周末”文字的日期为周六或周日。
         </p>
+        <QuickSelectPanel onApply={handleQuickApply} />
         <div className="mt-4 grid gap-5">
           {weeks.map((week) => (
             <WeekTable
@@ -172,6 +284,8 @@ export default function App({ api }: AppProps) {
               week={week}
               selectedKeys={selectedKeys}
               onToggle={handleToggle}
+              onPaintStart={handlePaintStart}
+              onPaintEnter={handlePaintEnter}
             />
           ))}
         </div>

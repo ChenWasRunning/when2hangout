@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -45,6 +45,35 @@ describe("App 提交流程", () => {
     const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
     expect(payload.displayName).toBe("小陈");
     expect(payload.slots).toEqual([{ date: "2026-07-27", meal: "lunch" }]);
+  });
+
+  it("可以按住拖过多个格子进行涂抹选择", () => {
+    const api = createApi();
+    render(<App api={api} />);
+
+    fireEvent.pointerDown(firstSlot("slot-2026-07-30:lunch"));
+    fireEvent.pointerEnter(firstSlot("slot-2026-07-31:lunch"));
+    fireEvent.pointerUp(window);
+
+    expect(firstSlot("slot-2026-07-30:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-07-31:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
+  it("可以一键选中 7/30 到 8/6 的午餐和晚餐", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.click(screen.getByRole("button", { name: "选中这段时间" }));
+    await user.type(screen.getByLabelText("你的名字"), "小陈");
+    await user.click(screen.getByRole("button", { name: "提交时间" }));
+
+    await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(1));
+    const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
+    expect(payload.slots).toHaveLength(16);
+    expect(payload.slots[0]).toEqual({ date: "2026-07-30", meal: "lunch" });
+    expect(payload.slots.at(-1)).toEqual({ date: "2026-08-06", meal: "dinner" });
   });
 
   it("未填写姓名时不能提交", async () => {

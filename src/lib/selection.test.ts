@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keysToSlots, slotsToKeys, toggleSlot, validateSlots } from "./selection";
+import { keysToSlots, setSlotsSelected, slotsToKeys, toggleSlot, validateSlots } from "./selection";
 
 describe("选择逻辑", () => {
   it("单元格选择和取消选择正确", () => {
@@ -34,6 +34,22 @@ describe("选择逻辑", () => {
       { date: "2026-07-27", meal: "lunch" },
       { date: "2026-08-30", meal: "dinner" },
     ]);
+  });
+
+  it("可以批量选中和取消一段 slots", () => {
+    const slots = [
+      { date: "2026-07-30", meal: "lunch" as const },
+      { date: "2026-07-30", meal: "dinner" as const },
+      { date: "2026-07-31", meal: "lunch" as const },
+    ];
+
+    const selected = setSlotsSelected(new Set(), slots, true);
+    expect(selected).toEqual(
+      new Set(["2026-07-30:lunch", "2026-07-30:dinner", "2026-07-31:lunch"]),
+    );
+
+    const removed = setSlotsSelected(selected, [{ date: "2026-07-30", meal: "lunch" }], false);
+    expect(removed).toEqual(new Set(["2026-07-30:dinner", "2026-07-31:lunch"]));
   });
 
   it("非法日期和非法 meal 值会被拒绝", () => {
