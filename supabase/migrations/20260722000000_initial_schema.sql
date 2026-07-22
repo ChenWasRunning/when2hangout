@@ -167,16 +167,10 @@ as $$
     select
       s.date,
       s.meal,
-      count(a.id)::int as available_count,
-      coalesce(
-        jsonb_agg(p.display_name order by p.display_name) filter (where p.id is not null),
-        '[]'::jsonb
-      ) as participant_names
+      count(a.id)::int as available_count
     from all_slots s
     left join public.availability a
       on a.date = s.date and a.meal = s.meal
-    left join public.participants p
-      on p.id = a.participant_id
     group by s.date, s.meal
   ),
   total as (
@@ -189,8 +183,7 @@ as $$
       jsonb_build_object(
         'date', to_char(slot_stats.date, 'YYYY-MM-DD'),
         'meal', slot_stats.meal,
-        'availableCount', slot_stats.available_count,
-        'participantNames', slot_stats.participant_names
+        'availableCount', slot_stats.available_count
       )
       order by slot_stats.date, slot_stats.meal
     ), '[]'::jsonb)

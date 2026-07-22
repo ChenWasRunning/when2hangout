@@ -28,7 +28,6 @@ export type MySubmission = {
 
 export type StatsSlot = SelectedSlot & {
   availableCount: number;
-  participantNames: string[];
 };
 
 export type StatsResponse = {

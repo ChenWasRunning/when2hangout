@@ -25,7 +25,7 @@
 - 首次成功提交后，浏览器 localStorage 保存随机 participant token。
 - 数据库只保存 token 的服务端哈希，不保存原始 token。
 - 同一浏览器再次打开可恢复此前提交，并通过“更新提交”替换旧结果。
-- 统计页展示总提交人数、每个时段人数、最佳时间前 10 名和可用名单。
+- 统计页只展示总提交人数和每日午餐/晚餐人数矩阵，不公开姓名名单。
 
 ## 本地运行
 
@@ -102,7 +102,7 @@ Edge Functions 用途：
 - `submit-availability`：验证姓名、token、slots，哈希 token，调用数据库事务式 RPC。
 - `my-submission`：用 token 哈希读取当前浏览器参与者自己的提交。
 - `submission-by-name`：按显示姓名精确查找最近一次提交，便于换设备时加载参考。
-- `stats`：返回统计页需要的聚合数据，不暴露 token hash 或内部字段。
+- `stats`：返回统计页需要的 count-only 聚合数据，不暴露姓名、token hash 或内部字段。
 
 ## GitHub Pages 部署
 
@@ -146,7 +146,7 @@ Vercel 不需要改变 Supabase Edge Functions 的部署方式。
 participant_token_hash
 ```
 
-数据库启用 RLS，并撤销 anon/authenticated 对 `participants` 和 `availability` 的直接访问。普通前端用户不能直接读取 token hash、修改他人记录或删除他人数据。
+数据库启用 RLS，并撤销 anon/authenticated 对 `participants` 和 `availability` 的直接访问。普通前端用户不能直接读取 token hash、修改他人记录或删除他人数据。公开统计接口只返回人数矩阵。
 
 按姓名搜索只返回该姓名最近一次提交的显示姓名和可用时段，不返回 token hash、participant id 或其它内部字段。同名时返回最近更新的一份。
 
@@ -160,6 +160,8 @@ participant_token_hash
 - 如果 token 泄露，持有者可以修改同一参与者提交。
 
 更多说明见 [docs/SECURITY.md](docs/SECURITY.md)。
+
+如果需要让姓名和备注只由组织者查看，并通过 git 下载加密导出文件，见 [docs/PRIVATE_EXPORT.md](docs/PRIVATE_EXPORT.md)。
 
 ## 测试和构建命令
 
@@ -194,4 +196,4 @@ npm run build
 - 测试顶部姓名搜索，确认能加载同名最近一次提交。
 - 关闭页面后再次打开，确认 localStorage token 能恢复旧提交。
 - 从另一台手机打开同一链接，确认作为新参与者提交。
-- 打开统计页，确认人数和名单正确更新。
+- 打开统计页，确认人数矩阵正确更新，且不显示姓名名单。

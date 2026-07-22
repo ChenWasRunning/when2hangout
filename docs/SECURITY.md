@@ -44,7 +44,9 @@ sha256(PARTICIPANT_TOKEN_PEPPER + ":" + participantToken)
 - 删除其他参与者
 - 直接写入 availability
 
-按姓名搜索会返回该显示姓名最近一次提交的公开可用时段。统计页本身已经公开展示每个时段对应的参与者姓名，因此这个功能不暴露 token hash 或 service-role key，但它不适合作为身份验证方式。
+按姓名搜索会返回该显示姓名最近一次提交的可用时段。这个功能不暴露 token hash 或 service-role key，但它不适合作为身份验证方式，也不满足“姓名只有组织者能看到”的严格隐私目标。
+
+公开统计页只返回人数矩阵，不返回参与者姓名。若要做到“姓名和备注只有组织者能看到”，应移除公开按姓名搜索，或将它改回仅依赖 localStorage participant token 的恢复机制。
 
 ## Edge Functions
 
