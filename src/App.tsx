@@ -14,8 +14,9 @@ import { MissingSupabaseConfigError } from "./lib/api";
 import { validateDisplayName, normalizeDisplayName } from "./lib/name";
 import {
   createParticipantToken,
+  getParticipantTokenForName,
   getStoredParticipantToken,
-  saveParticipantToken,
+  saveParticipantTokenForName,
 } from "./lib/participantToken";
 import {
   keysToSlots,
@@ -75,6 +76,7 @@ export default function App({ api }: AppProps) {
         setDisplayName(submission.displayName);
         setSelectedKeys(slotsToKeys(submission.slots));
         setIsExistingParticipant(true);
+        saveParticipantTokenForName(submission.displayName, token);
         setRestoreMessage("已恢复你之前提交的结果。修改后请点击“更新提交”。");
       })
       .catch(() => {
@@ -219,6 +221,7 @@ export default function App({ api }: AppProps) {
       setDisplayName(submission.displayName);
       setSelectedKeys(slotsToKeys(submission.slots));
       setSubmitState((current) => (current === "success" ? "idle" : current));
+      setIsExistingParticipant(Boolean(getParticipantTokenForName(submission.displayName)));
       setLookupMessage("已加载这个名字最近一次提交的时间表。");
     } catch (error) {
       if (error instanceof MissingSupabaseConfigError) {
@@ -250,7 +253,7 @@ export default function App({ api }: AppProps) {
       return;
     }
 
-    const existingToken = getStoredParticipantToken();
+    const existingToken = getParticipantTokenForName(normalizedName);
     const participantToken = existingToken ?? createParticipantToken();
 
     setSubmitState("submitting");
@@ -260,9 +263,7 @@ export default function App({ api }: AppProps) {
         displayName: normalizedName,
         slots,
       });
-      if (!existingToken) {
-        saveParticipantToken(participantToken);
-      }
+      saveParticipantTokenForName(normalizedName, participantToken);
       setDisplayName(normalizedName);
       setIsExistingParticipant(true);
       setSubmitState("success");
@@ -325,6 +326,7 @@ export default function App({ api }: AppProps) {
           setDisplayName(value);
           setNameError(null);
           setLookupMessage(null);
+          setIsExistingParticipant(Boolean(getParticipantTokenForName(normalizeDisplayName(value))));
           setSubmitState((current) => (current === "success" ? "idle" : current));
         }}
         onLookup={handleLookupByName}

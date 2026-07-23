@@ -23,9 +23,9 @@
 - 支持每周锁定；锁定后这一周不会被点击、拖拽涂抹、全选或清空，避免手机滑动时误触。
 - 参与者先在顶部输入名字，再选择时间，最后在页面底部点击提交。
 - 点击提交前不会写入 Supabase。
-- 首次成功提交后，浏览器 localStorage 保存随机 participant token。
+- 首次成功提交后，浏览器 localStorage 按姓名保存随机 participant token。
 - 数据库只保存 token 的服务端哈希，不保存原始 token。
-- 同一浏览器再次打开可恢复此前提交，并通过“更新提交”替换旧结果。
+- 同一浏览器再次打开可恢复最近使用的提交；同一浏览器换一个新名字提交时，会作为新参与者统计，不会覆盖前一个名字。
 - 统计页只展示总提交人数和每日午餐/晚餐人数矩阵，不公开姓名名单。
 
 ## 本地运行
@@ -142,7 +142,7 @@ Vercel 不需要改变 Supabase Edge Functions 的部署方式。
 
 前端只使用 Supabase anon key。anon key 是公开客户端 key，不是敏感密钥。
 
-原始 participant token 由浏览器生成，只保存在 localStorage。提交时发送给 Edge Function，Edge Function 使用 `PARTICIPANT_TOKEN_PEPPER` 计算 SHA-256 哈希。数据库只保存：
+原始 participant token 由浏览器生成，只保存在 localStorage。前端会按姓名保存多个本地 token；同一浏览器换一个新名字提交时会创建新 token，避免覆盖前一个参与者。提交时发送给 Edge Function，Edge Function 使用 `PARTICIPANT_TOKEN_PEPPER` 计算 SHA-256 哈希。数据库只保存：
 
 ```text
 participant_token_hash
@@ -194,6 +194,7 @@ npm run build
 - 点击提交前不保存
 - 提交成功/失败状态
 - participant token 恢复旧结果
+- 同一浏览器换名字提交时作为新参与者统计
 - 更新提交替换旧结果
 - 统计人数矩阵和浅色热度配色
 

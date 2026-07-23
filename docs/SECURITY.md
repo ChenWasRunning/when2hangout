@@ -22,7 +22,7 @@ service-role key 绝不能出现在前端代码、GitHub repository 或构建产
 
 ## participant token
 
-首次提交时，浏览器生成 64 位十六进制随机 token，并在提交成功后保存到 localStorage。
+首次提交时，浏览器生成 64 位十六进制随机 token，并在提交成功后保存到 localStorage。前端会按姓名保存多个本地 token；同一浏览器换一个新名字提交时会创建新 token，避免把前一个参与者覆盖掉。
 
 数据库不保存原始 token。Edge Function 计算：
 
@@ -65,5 +65,6 @@ Edge Functions 使用 service-role key 调用数据库 RPC。这样可以在服�
 
 - localStorage token 清除后无法找回原提交。
 - 没有账号体系，不能跨浏览器识别同一人。
+- 同一浏览器内的多姓名 token 只是为了避免多人共用设备或测试时互相覆盖，不是账号系统。
 - token 泄露后，持有者可更新对应提交。
 - 公开 Edge Functions 需要部署平台层面的限流和监控。

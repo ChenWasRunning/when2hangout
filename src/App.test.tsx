@@ -228,6 +228,29 @@ describe("App 提交流程", () => {
     expect(screen.getByRole("button", { name: "查看统计结果" })).toBeInTheDocument();
   });
 
+  it("同一浏览器换一个名字提交时会作为新参与者统计", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.click(firstSlot("slot-2026-07-27:lunch"));
+    await user.type(screen.getByLabelText("你的名字"), "小陈");
+    await user.click(screen.getByRole("button", { name: "提交时间" }));
+
+    expect(await screen.findByText("提交成功，感谢你的填写！")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "修改我的选择" }));
+    await user.clear(screen.getByLabelText("你的名字"));
+    await user.type(screen.getByLabelText("你的名字"), "小王");
+    await user.click(screen.getByRole("button", { name: "提交时间" }));
+
+    await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(2));
+    const firstPayload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
+    const secondPayload = vi.mocked(api.submitAvailability).mock.calls[1]?.[0] as SubmitPayload;
+    expect(firstPayload.displayName).toBe("小陈");
+    expect(secondPayload.displayName).toBe("小王");
+    expect(secondPayload.participantToken).not.toBe(firstPayload.participantToken);
+  });
+
   it("提交失败后保留当前表单", async () => {
     const user = userEvent.setup();
     const api = createApi({

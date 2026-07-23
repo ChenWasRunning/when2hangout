@@ -39,7 +39,7 @@ EVENT_END_DATE = "2026-08-30";
 2. 用户输入名字。
 3. 用户点击“提交时间”或“更新提交”。
 4. 前端验证姓名和 slots。
-5. 前端生成或读取 localStorage participant token。
+5. 前端按当前姓名读取 localStorage participant token；没有该姓名的 token 时生成新 token。
 6. 前端调用 `submit-availability` Edge Function。
 7. Edge Function 验证 token、姓名和 slots。
 8. Edge Function 哈希 token。
@@ -50,4 +50,4 @@ EVENT_END_DATE = "2026-08-30";
 
 ## 统计流程
 
-统计页调用 `stats` Edge Function。Edge Function 调用 `get_public_stats` RPC，返回每个固定 slot 的人数和姓名列表。前端只渲染聚合结果，不直接下载数据库表。
+统计页调用 `stats` Edge Function。Edge Function 调用 `get_public_stats` RPC，只返回每个固定 slot 的人数和总提交人数。前端只渲染聚合结果，不直接下载数据库表，也不公开参与者姓名。
