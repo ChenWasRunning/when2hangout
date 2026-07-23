@@ -93,7 +93,7 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
         <StatusBlock text="暂无提交记录" />
       ) : null}
 
-      {loadState === "success" && stats && stats.totalSubmissions > 0 ? (
+      {loadState === "success" && stats ? (
         <section
           aria-label="每日可用人数矩阵"
           className="mt-5 rounded-lg border border-stone-200 bg-white p-3 shadow-sm sm:p-5"
