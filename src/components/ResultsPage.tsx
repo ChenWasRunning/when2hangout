@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { buildWeeks, MEAL_LABEL, slotKey } from "../lib/dates";
+import { availabilityBackgroundColor, calculateDailyRatio } from "../lib/resultsColor";
 import type { AppApi, Meal, StatsResponse, StatsSlot } from "../types";
 
 type ResultsPageProps = {
@@ -42,6 +43,24 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
   }, [stats]);
 
   const weeks = useMemo(() => buildWeeks(), []);
+
+  const maxDailyRatio = useMemo(() => {
+    if (!stats || stats.totalSubmissions === 0) {
+      return 0;
+    }
+
+    return Math.max(
+      ...weeks.flatMap((week) =>
+        week.days.map((day) =>
+          calculateDailyRatio(
+            slotMap.get(slotKey({ date: day.date, meal: "lunch" }))?.availableCount ?? 0,
+            slotMap.get(slotKey({ date: day.date, meal: "dinner" }))?.availableCount ?? 0,
+            stats.totalSubmissions,
+          ),
+        ),
+      ),
+    );
+  }, [slotMap, stats, weeks]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
@@ -86,12 +105,12 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
                       key={day.date}
                       dateLabel={`${day.month}/${day.day}`}
                       weekday={day.weekdayName}
-                      isWeekend={day.isWeekend}
                       lunch={slotMap.get(slotKey({ date: day.date, meal: "lunch" }))?.availableCount ?? 0}
                       dinner={
                         slotMap.get(slotKey({ date: day.date, meal: "dinner" }))?.availableCount ?? 0
                       }
                       total={stats.totalSubmissions}
+                      maxDailyRatio={maxDailyRatio}
                     />
                   ))}
                 </div>
@@ -107,24 +126,26 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
 function DayStatsCell({
   dateLabel,
   weekday,
-  isWeekend,
   lunch,
   dinner,
   total,
+  maxDailyRatio,
 }: {
   dateLabel: string;
   weekday: string;
-  isWeekend: boolean;
   lunch: number;
   dinner: number;
   total: number;
+  maxDailyRatio: number;
 }) {
+  const ratio = calculateDailyRatio(lunch, dinner, total);
+  const normalizedRatio = maxDailyRatio > 0 ? ratio / maxDailyRatio : 0;
+
   return (
     <div
-      className={[
-        "min-w-0 rounded-md border p-1.5 text-center sm:p-3",
-        isWeekend ? "border-amber-300 bg-amber-50" : "border-stone-200 bg-stone-50",
-      ].join(" ")}
+      aria-label={`${dateLabel} ${weekday}，午餐 ${lunch}/${total}，晚餐 ${dinner}/${total}`}
+      className="min-w-0 rounded-md border border-stone-200 p-1.5 text-center sm:p-3"
+      style={{ backgroundColor: availabilityBackgroundColor(normalizedRatio) }}
     >
       <div className="text-[11px] font-bold leading-4 text-stone-600 sm:text-sm">{weekday}</div>
       <div className="text-sm font-black leading-5 text-stone-950 sm:text-lg">{dateLabel}</div>
@@ -138,7 +159,7 @@ function DayStatsCell({
 
 function CountLine({ meal, count, total }: { meal: Meal; count: number; total: number }) {
   return (
-    <div className="rounded bg-white px-1 py-1 text-[11px] font-bold leading-4 text-stone-800 sm:text-sm">
+    <div className="rounded bg-white/75 px-1 py-1 text-[11px] font-bold leading-4 text-stone-800 sm:text-sm">
       <span className="block sm:inline">{MEAL_LABEL[meal]}</span>
       <span className="block text-teal-800 sm:ml-1 sm:inline">
         {count}/{total}

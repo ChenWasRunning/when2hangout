@@ -11,6 +11,7 @@ type WeekTableProps = {
   onPaintStart: (date: string, meal: Meal, selected: boolean) => void;
   onPaintEnter: (date: string, meal: Meal) => void;
   onToggleLock: (weekIndex: number) => void;
+  onSelectWeek: (slots: SelectedSlot[]) => void;
   onClearWeek: (slots: SelectedSlot[]) => void;
 };
 
@@ -22,6 +23,7 @@ export function WeekTable({
   onPaintStart,
   onPaintEnter,
   onToggleLock,
+  onSelectWeek,
   onClearWeek,
 }: WeekTableProps) {
   const weekSlots = week.days.flatMap((day) => MEALS.map((meal) => ({ date: day.date, meal })));
@@ -35,7 +37,7 @@ export function WeekTable({
         <h2 id={`week-${week.index}`} className="min-w-0 flex-1 text-lg font-bold text-stone-950">
           {week.title}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
             aria-label={locked ? `解锁第${week.index}周` : `锁定第${week.index}周`}
@@ -53,9 +55,29 @@ export function WeekTable({
           </button>
           <button
             type="button"
+            aria-label={`全选第${week.index}周`}
+            disabled={locked}
+            onClick={() => onSelectWeek(weekSlots)}
+            className={[
+              "min-h-9 rounded-md border px-3 text-sm font-bold",
+              locked
+                ? "cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400"
+                : "border-stone-300 bg-white text-stone-700",
+            ].join(" ")}
+          >
+            全选
+          </button>
+          <button
+            type="button"
             aria-label={`清空第${week.index}周`}
+            disabled={locked}
             onClick={() => onClearWeek(weekSlots)}
-            className="min-h-9 rounded-md border border-stone-300 bg-white px-3 text-sm font-bold text-stone-700"
+            className={[
+              "min-h-9 rounded-md border px-3 text-sm font-bold",
+              locked
+                ? "cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400"
+                : "border-stone-300 bg-white text-stone-700",
+            ].join(" ")}
           >
             清空
           </button>

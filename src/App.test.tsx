@@ -82,6 +82,21 @@ describe("App 提交流程", () => {
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
+  it("可以全选某一周的所有午餐和晚餐，且不会自动提交", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.click(screen.getByRole("button", { name: "全选第3周" }));
+
+    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-10:dinner")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-16:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-16:dinner")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-17:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
   it("可以按姓名搜索并加载已经提交过的时间表", async () => {
     const user = userEvent.setup();
     const api = createApi({
@@ -126,8 +141,12 @@ describe("App 提交流程", () => {
       "aria-pressed",
       "true",
     );
+    expect(screen.getByRole("button", { name: "全选第3周" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "清空第3周" })).toBeDisabled();
 
     await user.click(firstSlot("slot-2026-08-10:lunch"));
+    await user.click(screen.getByRole("button", { name: "全选第3周" }));
+    await user.click(screen.getByRole("button", { name: "清空第3周" }));
     fireEvent.pointerDown(firstSlot("slot-2026-08-11:dinner"));
     fireEvent.pointerEnter(firstSlot("slot-2026-08-12:dinner"));
     fireEvent.pointerUp(window);

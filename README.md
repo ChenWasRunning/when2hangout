@@ -18,8 +18,9 @@
 - 每天只有两个时段：午餐、晚餐。
 - 姓名输入位于页面顶部，可以按姓名搜索并加载该名字最近一次提交。
 - 支持点击单格切换，也支持按住拖过多个格子进行涂抹选择。
+- 支持在每周右上角一键全选该周所有午餐/晚餐。
 - 支持在每周右上角一键清空该周已选择的午餐/晚餐。
-- 支持每周锁定；锁定后这一周不会被点击或拖拽涂抹改动，避免手机滑动时误触。
+- 支持每周锁定；锁定后这一周不会被点击、拖拽涂抹、全选或清空，避免手机滑动时误触。
 - 参与者先在顶部输入名字，再选择时间，最后在页面底部点击提交。
 - 点击提交前不会写入 Supabase。
 - 首次成功提交后，浏览器 localStorage 保存随机 participant token。
@@ -84,9 +85,10 @@ supabase/migrations/20260722000000_initial_schema.sql
 设置服务端 secrets：
 
 ```bash
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 supabase secrets set PARTICIPANT_TOKEN_PEPPER=replace-with-a-long-random-secret
 ```
+
+Supabase hosted Edge Functions 默认提供 `SUPABASE_URL` 和 legacy `SUPABASE_SERVICE_ROLE_KEY`。不要手动设置以 `SUPABASE_` 开头的 secret；CLI 会拒绝这类保留变量名。
 
 部署函数：
 
@@ -163,6 +165,16 @@ participant_token_hash
 
 如果需要让姓名和备注只由组织者查看，并通过 git 下载加密导出文件，见 [docs/PRIVATE_EXPORT.md](docs/PRIVATE_EXPORT.md)。
 
+## 清空测试数据
+
+正式发给同学前，如果需要清空测试提交，在 Supabase Dashboard 打开 SQL Editor，执行：
+
+```sql
+truncate table public.availability, public.participants restart identity cascade;
+```
+
+这会删除所有参与者、姓名、备注和已选时间。执行后也建议在自己的浏览器里清除该网站的 localStorage，或用无痕窗口重新测试，避免页面继续尝试恢复旧的 participant token。
+
 ## 测试和构建命令
 
 ```bash
@@ -183,7 +195,7 @@ npm run build
 - 提交成功/失败状态
 - participant token 恢复旧结果
 - 更新提交替换旧结果
-- 统计排序规则
+- 统计人数矩阵和浅色热度配色
 
 ## 微信内置浏览器测试建议
 
@@ -191,8 +203,9 @@ npm run build
 - 确认可选单元格触控区域足够大，不需要缩放。
 - 在微信内打开 GitHub Pages 或 Vercel 链接，完成一次提交。
 - 测试按住一个午餐/晚餐格子拖过其它格子，确认可以连续涂抹。
+- 测试每周右上角“全选”，确认只全选当前周。
 - 测试每周右上角“清空”，确认只清空当前周。
-- 测试每周右上角“🔓 锁定 / 🔒 已锁”，确认锁定后滑动或点击不会改动该周。
+- 测试每周右上角“🔓 锁定 / 🔒 已锁”，确认锁定后滑动、点击、全选和清空都不会改动该周。
 - 测试顶部姓名搜索，确认能加载同名最近一次提交。
 - 关闭页面后再次打开，确认 localStorage token 能恢复旧提交。
 - 从另一台手机打开同一链接，确认作为新参与者提交。

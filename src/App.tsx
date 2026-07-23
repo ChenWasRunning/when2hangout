@@ -176,6 +176,11 @@ export default function App({ api }: AppProps) {
     setSelectedKeys((current) => setSlotsSelected(current, slots, false));
   }, []);
 
+  const handleSelectWeek = useCallback((slots: { date: string; meal: Meal }[]) => {
+    setSubmitState((current) => (current === "success" ? "idle" : current));
+    setSelectedKeys((current) => setSlotsSelected(current, slots, true));
+  }, []);
+
   const handleToggleWeekLock = useCallback((weekIndex: number) => {
     setLockedWeekIndexes((current) => {
       const next = new Set(current);
@@ -343,6 +348,7 @@ export default function App({ api }: AppProps) {
               onPaintStart={handlePaintStart}
               onPaintEnter={handlePaintEnter}
               onToggleLock={handleToggleWeekLock}
+              onSelectWeek={handleSelectWeek}
               onClearWeek={handleClearWeek}
             />
           ))}
