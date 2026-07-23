@@ -76,9 +76,12 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
         <p className="text-sm font-bold text-teal-800">查看统计结果</p>
         <h1 className="mt-1 text-3xl font-black text-stone-950">聚会时间统计结果</h1>
         {stats && stats.totalSubmissions > 0 ? (
-          <p className="mt-3 inline-flex rounded-full bg-teal-50 px-3 py-2 text-sm font-bold text-teal-900">
-            共 {stats.totalSubmissions} 人提交
-          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p className="inline-flex rounded-full bg-teal-50 px-3 py-2 text-sm font-bold text-teal-900">
+              共 {stats.totalSubmissions} 人提交
+            </p>
+            <ColorLegend />
+          </div>
         ) : null}
       </header>
 
@@ -120,6 +123,22 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
         </section>
       ) : null}
     </main>
+  );
+}
+
+function ColorLegend() {
+  return (
+    <div aria-label="颜色说明：红色表示有空比例少，绿色表示有空比例多" className="flex items-center gap-2">
+      <span className="text-xs font-bold text-stone-600">少</span>
+      <div
+        aria-hidden="true"
+        className="h-3 w-28 rounded-full border border-stone-200 sm:w-36"
+        style={{
+          background: `linear-gradient(to right, ${availabilityBackgroundColor(0)}, ${availabilityBackgroundColor(0.5)}, ${availabilityBackgroundColor(1)})`,
+        }}
+      />
+      <span className="text-xs font-bold text-stone-600">多</span>
+    </div>
   );
 }
 
