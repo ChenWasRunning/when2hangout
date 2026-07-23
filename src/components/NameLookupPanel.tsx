@@ -3,8 +3,10 @@ type NameLookupPanelProps = {
   nameError: string | null;
   lookupMessage: string | null;
   isLookupLoading: boolean;
+  isClearLoading: boolean;
   onNameChange: (value: string) => void;
   onLookup: () => void;
+  onClearSubmission: () => void;
 };
 
 export function NameLookupPanel({
@@ -12,9 +14,13 @@ export function NameLookupPanel({
   nameError,
   lookupMessage,
   isLookupLoading,
+  isClearLoading,
   onNameChange,
   onLookup,
+  onClearSubmission,
 }: NameLookupPanelProps) {
+  const isBusy = isLookupLoading || isClearLoading;
+
   return (
     <section className="mt-4 rounded-lg border border-stone-200 bg-white p-4 shadow-sm" aria-labelledby="name-title">
       <h2 id="name-title" className="text-lg font-black text-stone-950">
@@ -24,7 +30,7 @@ export function NameLookupPanel({
         如果你之前已经提交过，可以输入同一个名字并点击搜索，页面会加载最近一次提交的时间表。
       </p>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
         <label htmlFor="display-name" className="sr-only">
           你的名字
         </label>
@@ -39,11 +45,19 @@ export function NameLookupPanel({
         />
         <button
           type="button"
-          disabled={isLookupLoading}
+          disabled={isBusy}
           onClick={onLookup}
           className="min-h-12 rounded-md border border-teal-700 bg-white px-5 font-bold text-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLookupLoading ? "搜索中……" : "搜索"}
+        </button>
+        <button
+          type="button"
+          disabled={isBusy}
+          onClick={onClearSubmission}
+          className="min-h-12 rounded-md border border-red-200 bg-white px-5 font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isClearLoading ? "清空中……" : "清空记录"}
         </button>
       </div>
 

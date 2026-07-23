@@ -14,6 +14,7 @@ function createApi(overrides: Partial<AppApi> = {}): AppApi {
     getMySubmission: vi.fn().mockResolvedValue(null),
     findSubmissionByName: vi.fn().mockResolvedValue(null),
     submitAvailability: vi.fn().mockResolvedValue(undefined),
+    clearSubmission: vi.fn().mockResolvedValue(undefined),
     getStats: vi.fn().mockResolvedValue(emptyStats),
     ...overrides,
   };
@@ -249,6 +250,44 @@ describe("App 提交流程", () => {
     expect(firstPayload.displayName).toBe("小陈");
     expect(secondPayload.displayName).toBe("小王");
     expect(secondPayload.participantToken).not.toBe(firstPayload.participantToken);
+  });
+
+  it("可以确认后清空本浏览器中这个名字的后台提交记录", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.click(firstSlot("slot-2026-07-27:lunch"));
+    await user.type(screen.getByLabelText("你的名字"), "小陈");
+    await user.click(screen.getByRole("button", { name: "提交时间" }));
+
+    expect(await screen.findByText("提交成功，感谢你的填写！")).toBeInTheDocument();
+    const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
+
+    await user.click(screen.getByRole("button", { name: "清空记录" }));
+
+    expect(window.confirm).toHaveBeenCalledWith("确定要清空「小陈」已经填写的记录吗？清空后统计人数也会减少。");
+    await waitFor(() => expect(api.clearSubmission).toHaveBeenCalledTimes(1));
+    expect(api.clearSubmission).toHaveBeenCalledWith({
+      displayName: "小陈",
+      participantToken: payload.participantToken,
+    });
+    expect(await screen.findByText("已清空这个名字的提交记录。")).toBeInTheDocument();
+    expect(firstSlot("slot-2026-07-27:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "提交时间" })).toBeInTheDocument();
+  });
+
+  it("没有本地 token 时不会清空后台提交记录", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.type(screen.getByLabelText("你的名字"), "小陈");
+    await user.click(screen.getByRole("button", { name: "清空记录" }));
+
+    expect(await screen.findByText("本浏览器没有这个名字的可清空记录。")).toBeInTheDocument();
+    expect(window.confirm).not.toHaveBeenCalledWith("确定要清空「小陈」已经填写的记录吗？清空后统计人数也会减少。");
+    expect(api.clearSubmission).not.toHaveBeenCalled();
   });
 
   it("提交失败后保留当前表单", async () => {

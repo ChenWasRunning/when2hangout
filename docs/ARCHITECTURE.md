@@ -48,6 +48,8 @@ EVENT_END_DATE = "2026-08-30";
 
 顶部姓名搜索调用 `submission-by-name` Edge Function。它只用于加载同名最近一次提交到当前页面，方便用户参考和修改；保存仍然必须由用户点击底部提交按钮触发。
 
+顶部“清空记录”调用 `clear-submission` Edge Function。前端必须提供当前姓名在本浏览器 localStorage 中保存的 participant token；后台只删除 token hash 和显示姓名同时匹配的记录，availability 通过外键级联删除。
+
 ## 统计流程
 
 统计页调用 `stats` Edge Function。Edge Function 调用 `get_public_stats` RPC，只返回每个固定 slot 的人数和总提交人数。前端只渲染聚合结果，不直接下载数据库表，也不公开参与者姓名。

@@ -24,6 +24,7 @@ describe("ResultsPage 统计配色", () => {
           getMySubmission: async () => null,
           findSubmissionByName: async () => null,
           submitAvailability: async () => undefined,
+          clearSubmission: async () => undefined,
           getStats: async () => ({ totalSubmissions: 0, slots: [] }),
         },
         onBack: () => undefined,

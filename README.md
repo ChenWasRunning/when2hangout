@@ -17,6 +17,7 @@
 - 固定显示五个自然周，每周从星期一到星期日。
 - 每天只有两个时段：午餐、晚餐。
 - 姓名输入位于页面顶部，可以按姓名搜索并加载该名字最近一次提交。
+- 支持清空本浏览器中当前姓名对应的提交记录；清空前会弹窗确认。
 - 支持点击单格切换，也支持按住拖过多个格子进行涂抹选择。
 - 支持在每周右上角一键全选该周所有午餐/晚餐。
 - 支持在每周右上角一键清空该周已选择的午餐/晚餐。
@@ -96,6 +97,7 @@ Supabase hosted Edge Functions 默认提供 `SUPABASE_URL` 和 legacy `SUPABASE_
 supabase functions deploy submit-availability
 supabase functions deploy my-submission
 supabase functions deploy submission-by-name
+supabase functions deploy clear-submission
 supabase functions deploy stats
 ```
 
@@ -104,6 +106,7 @@ Edge Functions 用途：
 - `submit-availability`：验证姓名、token、slots，哈希 token，调用数据库事务式 RPC。
 - `my-submission`：用 token 哈希读取当前浏览器参与者自己的提交。
 - `submission-by-name`：按显示姓名精确查找最近一次提交，便于换设备时加载参考。
+- `clear-submission`：用当前姓名和本浏览器保存的 token 清空对应提交记录。
 - `stats`：返回统计页需要的 count-only 聚合数据，不暴露姓名、token hash 或内部字段。
 
 ## GitHub Pages 部署
@@ -153,6 +156,8 @@ participant_token_hash
 按姓名搜索只返回该姓名最近一次提交的显示姓名和可用时段，不返回 token hash、participant id 或其它内部字段。同名时返回最近更新的一份。
 
 `submit_availability` RPC 会在一次数据库函数调用中更新参与者姓名、删除旧 availability、插入本次完整选择。这样更新提交时后台最终记录与本次完整提交一致。
+
+`clear_submission` RPC 只会删除 token hash 和显示姓名同时匹配的 participant。availability 通过外键级联删除。
 
 已知限制：
 

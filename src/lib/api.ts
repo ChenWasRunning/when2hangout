@@ -49,6 +49,13 @@ export const supabaseApi: AppApi = {
     });
   },
 
+  async clearSubmission(payload): Promise<void> {
+    await invokeFunction("clear-submission", {
+      participantToken: payload.participantToken,
+      displayName: payload.displayName,
+    });
+  },
+
   async getStats(): Promise<StatsResponse> {
     return invokeFunction<StatsResponse>("stats");
   },

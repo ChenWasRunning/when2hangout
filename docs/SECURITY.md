@@ -46,6 +46,8 @@ sha256(PARTICIPANT_TOKEN_PEPPER + ":" + participantToken)
 
 按姓名搜索会返回该显示姓名最近一次提交的可用时段。这个功能不暴露 token hash 或 service-role key，但它不适合作为身份验证方式，也不满足“姓名只有组织者能看到”的严格隐私目标。
 
+“清空记录”不是按姓名任意删除。前端必须同时发送当前姓名和本浏览器保存的 participant token；Edge Function 哈希 token 后调用 `clear_submission` RPC，只删除 token hash 和显示姓名同时匹配的记录。
+
 公开统计页只返回人数矩阵，不返回参与者姓名。若要做到“姓名和备注只有组织者能看到”，应移除公开按姓名搜索，或将它改回仅依赖 localStorage participant token 的恢复机制。
 
 ## Edge Functions

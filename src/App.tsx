@@ -16,6 +16,7 @@ import {
   createParticipantToken,
   getParticipantTokenForName,
   getStoredParticipantToken,
+  removeParticipantTokenForName,
   saveParticipantTokenForName,
 } from "./lib/participantToken";
 import {
@@ -50,6 +51,7 @@ export default function App({ api }: AppProps) {
   const [isRestoring, setIsRestoring] = useState(false);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
+  const [isClearLoading, setIsClearLoading] = useState(false);
   const [lockedWeekIndexes, setLockedWeekIndexes] = useState<Set<number>>(() => new Set());
   const paintModeRef = useRef<PaintMode | null>(null);
 
@@ -196,7 +198,7 @@ export default function App({ api }: AppProps) {
   }, []);
 
   const handleLookupByName = useCallback(async () => {
-    if (isLookupLoading) {
+    if (isLookupLoading || isClearLoading) {
       return;
     }
 
@@ -232,7 +234,55 @@ export default function App({ api }: AppProps) {
     } finally {
       setIsLookupLoading(false);
     }
-  }, [api, displayName, isLookupLoading]);
+  }, [api, displayName, isClearLoading, isLookupLoading]);
+
+  const handleClearSubmissionByName = useCallback(async () => {
+    if (isLookupLoading || isClearLoading) {
+      return;
+    }
+
+    const normalizedName = normalizeDisplayName(displayName);
+    const validationError = validateDisplayName(normalizedName);
+    setNameError(validationError);
+    setLookupMessage(null);
+    setSubmitError(null);
+
+    if (validationError) {
+      return;
+    }
+
+    const participantToken = getParticipantTokenForName(normalizedName);
+    if (!participantToken) {
+      setLookupMessage("本浏览器没有这个名字的可清空记录。");
+      return;
+    }
+
+    if (!window.confirm(`确定要清空「${normalizedName}」已经填写的记录吗？清空后统计人数也会减少。`)) {
+      return;
+    }
+
+    setIsClearLoading(true);
+    try {
+      await api.clearSubmission({
+        participantToken,
+        displayName: normalizedName,
+      });
+      removeParticipantTokenForName(normalizedName);
+      setDisplayName(normalizedName);
+      setSelectedKeys(new Set());
+      setIsExistingParticipant(false);
+      setSubmitState("idle");
+      setLookupMessage("已清空这个名字的提交记录。");
+    } catch (error) {
+      if (error instanceof MissingSupabaseConfigError) {
+        setLookupMessage("Supabase 配置缺失，请检查环境变量。");
+      } else {
+        setLookupMessage("清空失败，请重试。");
+      }
+    } finally {
+      setIsClearLoading(false);
+    }
+  }, [api, displayName, isClearLoading, isLookupLoading]);
 
   const handleSubmit = useCallback(async () => {
     if (submitState === "submitting") {
@@ -322,6 +372,7 @@ export default function App({ api }: AppProps) {
         nameError={nameError}
         lookupMessage={lookupMessage}
         isLookupLoading={isLookupLoading}
+        isClearLoading={isClearLoading}
         onNameChange={(value) => {
           setDisplayName(value);
           setNameError(null);
@@ -330,6 +381,7 @@ export default function App({ api }: AppProps) {
           setSubmitState((current) => (current === "success" ? "idle" : current));
         }}
         onLookup={handleLookupByName}
+        onClearSubmission={handleClearSubmissionByName}
       />
 
       <section aria-labelledby="choose-title" className="mt-6">

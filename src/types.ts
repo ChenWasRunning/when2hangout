@@ -41,9 +41,15 @@ export type SubmitPayload = {
   slots: SelectedSlot[];
 };
 
+export type ClearSubmissionPayload = {
+  participantToken: string;
+  displayName: string;
+};
+
 export type AppApi = {
   getMySubmission: (participantToken: string) => Promise<MySubmission | null>;
   findSubmissionByName: (displayName: string) => Promise<MySubmission | null>;
   submitAvailability: (payload: SubmitPayload) => Promise<void>;
+  clearSubmission: (payload: ClearSubmissionPayload) => Promise<void>;
   getStats: () => Promise<StatsResponse>;
 };

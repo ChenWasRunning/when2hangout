@@ -31,6 +31,25 @@ export function saveParticipantTokenForName(
   saveParticipantToken(token, storage);
 }
 
+export function removeParticipantTokenForName(
+  displayName: string,
+  storage: Storage = window.localStorage,
+): void {
+  const tokenMap = readTokenMap(storage);
+  const key = tokenMapKey(displayName);
+  const removedToken = tokenMap[key];
+  delete tokenMap[key];
+  storage.setItem(TOKENS_BY_NAME_STORAGE_KEY, JSON.stringify(tokenMap));
+
+  if (removedToken && storage.getItem(ACTIVE_STORAGE_KEY) === removedToken) {
+    storage.removeItem(ACTIVE_STORAGE_KEY);
+  }
+
+  if (removedToken && storage.getItem(LEGACY_STORAGE_KEY) === removedToken) {
+    storage.removeItem(LEGACY_STORAGE_KEY);
+  }
+}
+
 export function createParticipantToken(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
