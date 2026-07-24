@@ -8,6 +8,7 @@ export type SelectedSlot = {
 const startDate = "2026-07-27";
 const endDate = "2026-08-30";
 const validMeals = new Set(["lunch", "dinner"]);
+const validWeekdayIndexes = new Set([5, 6, 0]);
 
 export function normalizeName(value: unknown): string {
   if (typeof value !== "string") {
@@ -57,6 +58,10 @@ export function validateSlots(value: unknown): SelectedSlot[] {
       throw new Error("非法日期");
     }
 
+    if (!validWeekdayIndexes.has(getWeekdayIndex(date))) {
+      throw new Error("非法日期");
+    }
+
     if (typeof meal !== "string" || !validMeals.has(meal)) {
       throw new Error("非法 meal 值");
     }
@@ -69,6 +74,25 @@ export function validateSlots(value: unknown): SelectedSlot[] {
     if (a.meal === b.meal) return 0;
     return a.meal === "lunch" ? -1 : 1;
   });
+}
+
+function getWeekdayIndex(date: string): number {
+  const [yearValue, monthValue, dayValue] = date.split("-").map(Number);
+  const monthOffset = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+  let year = yearValue;
+  const month = monthValue;
+  if (month < 3) {
+    year -= 1;
+  }
+
+  return (
+    year +
+    Math.floor(year / 4) -
+    Math.floor(year / 100) +
+    Math.floor(year / 400) +
+    monthOffset[month - 1] +
+    dayValue
+  ) % 7;
 }
 
 export async function hashParticipantToken(token: string): Promise<string> {

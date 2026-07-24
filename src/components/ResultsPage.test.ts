@@ -32,7 +32,7 @@ describe("ResultsPage 统计配色", () => {
     );
 
     expect(await screen.findByText("暂无提交记录")).toBeInTheDocument();
-    const firstDayCell = screen.getByLabelText("7/27 星期一，午餐 0/0，晚餐 0/0");
+    const firstDayCell = screen.getByLabelText("7/31 星期五，午餐 0/0，晚餐 0/0");
     expect(firstDayCell).toHaveStyle({ backgroundColor: availabilityBackgroundColor(0) });
     expect(screen.getByLabelText("每日可用人数矩阵")).toBeInTheDocument();
   });

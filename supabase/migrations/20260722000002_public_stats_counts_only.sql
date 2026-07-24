@@ -5,7 +5,9 @@ security definer
 set search_path = public
 as $$
   with dates as (
-    select generate_series(date '2026-07-27', date '2026-08-30', interval '1 day')::date as date
+    select date
+    from generate_series(date '2026-07-27', date '2026-08-30', interval '1 day') as item(date)
+    where extract(isodow from date) in (5, 6, 7)
   ),
   meals as (
     select unnest(enum_range(null::meal_type)) as meal

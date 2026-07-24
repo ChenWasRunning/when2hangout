@@ -1,55 +1,12 @@
-create extension if not exists pgcrypto;
+delete from public.availability
+where extract(isodow from date) not in (5, 6, 7);
 
-do $$
-begin
-  if not exists (select 1 from pg_type where typname = 'meal_type') then
-    create type meal_type as enum ('lunch', 'dinner');
-  end if;
-end $$;
+alter table public.availability
+drop constraint if exists availability_visible_weekday_check;
 
-create table if not exists public.participants (
-  id uuid primary key default gen_random_uuid(),
-  display_name text not null check (char_length(btrim(display_name)) between 1 and 30),
-  participant_token_hash text not null unique,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.availability (
-  id uuid primary key default gen_random_uuid(),
-  participant_id uuid not null references public.participants(id) on delete cascade,
-  date date not null check (
-    date between date '2026-07-27' and date '2026-08-30'
-    and extract(isodow from date) in (5, 6, 7)
-  ),
-  meal meal_type not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (participant_id, date, meal)
-);
-
-alter table public.participants enable row level security;
-alter table public.availability enable row level security;
-
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
-drop trigger if exists participants_set_updated_at on public.participants;
-create trigger participants_set_updated_at
-before update on public.participants
-for each row execute function public.set_updated_at();
-
-drop trigger if exists availability_set_updated_at on public.availability;
-create trigger availability_set_updated_at
-before update on public.availability
-for each row execute function public.set_updated_at();
+alter table public.availability
+add constraint availability_visible_weekday_check
+check (extract(isodow from date) in (5, 6, 7));
 
 create or replace function public.submit_availability(
   p_token_hash text,
@@ -115,43 +72,6 @@ begin
 end;
 $$;
 
-create or replace function public.get_my_submission(p_token_hash text)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_participant public.participants%rowtype;
-  v_slots jsonb;
-begin
-  select *
-  into v_participant
-  from public.participants
-  where participant_token_hash = p_token_hash;
-
-  if not found then
-    return null;
-  end if;
-
-  select coalesce(
-    jsonb_agg(
-      jsonb_build_object('date', to_char(a.date, 'YYYY-MM-DD'), 'meal', a.meal)
-      order by a.date, a.meal
-    ),
-    '[]'::jsonb
-  )
-  into v_slots
-  from public.availability a
-  where a.participant_id = v_participant.id;
-
-  return jsonb_build_object(
-    'displayName', v_participant.display_name,
-    'slots', v_slots
-  );
-end;
-$$;
-
 create or replace function public.get_public_stats()
 returns jsonb
 language sql
@@ -198,11 +118,7 @@ as $$
   from slot_stats;
 $$;
 
-revoke all on public.participants from anon, authenticated;
-revoke all on public.availability from anon, authenticated;
 revoke all on function public.submit_availability(text, text, jsonb) from public, anon, authenticated;
-revoke all on function public.get_my_submission(text) from public, anon, authenticated;
 revoke all on function public.get_public_stats() from public, anon, authenticated;
 grant execute on function public.submit_availability(text, text, jsonb) to service_role;
-grant execute on function public.get_my_submission(text) to service_role;
 grant execute on function public.get_public_stats() to service_role;

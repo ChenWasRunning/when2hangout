@@ -85,7 +85,7 @@ export function WeekTable({
       </div>
 
       <div className="mt-3 md:hidden">
-        <div className="grid w-full grid-cols-7 gap-0.5">
+        <div className="grid w-full grid-cols-3 gap-2">
           {week.days.map((day) => (
             <div
               key={day.date}
@@ -122,7 +122,7 @@ export function WeekTable({
       </div>
 
       <div className="mt-4 hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[780px] border-separate border-spacing-2">
+        <table className="w-full min-w-[460px] border-separate border-spacing-2">
           <caption className="sr-only">{week.title} 的午餐和晚餐可选时间</caption>
           <thead>
             <tr>

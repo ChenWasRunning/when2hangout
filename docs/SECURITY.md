@@ -44,6 +44,8 @@ sha256(PARTICIPANT_TOKEN_PEPPER + ":" + participantToken)
 - 删除其他参与者
 - 直接写入 availability
 
+前端隐藏周一到周四不是唯一防线。Edge Function 和数据库 RPC 都只接受 `2026-07-27` 至 `2026-08-30` 范围内的周五、周六、周日 slot；数据库约束也会拒绝其它星期。
+
 按姓名搜索会返回该显示姓名最近一次提交的可用时段。这个功能不暴露 token hash 或 service-role key，但它不适合作为身份验证方式，也不满足“姓名只有组织者能看到”的严格隐私目标。
 
 “清空记录”不是按姓名任意删除。前端必须同时发送当前姓名和本浏览器保存的 participant token；Edge Function 哈希 token 后调用 `clear_submission` RPC，只删除 token hash 和显示姓名同时匹配的记录。

@@ -102,7 +102,7 @@ export function ResultsPage({ api, onBack }: ResultsPageProps) {
             {weeks.map((week) => (
               <div key={week.index}>
                 <h2 className="text-base font-black text-stone-950">{week.title}</h2>
-                <div className="mt-2 grid grid-cols-7 gap-1 sm:gap-2">
+                <div className="mt-2 grid grid-cols-3 gap-2 sm:gap-3">
                   {week.days.map((day) => (
                     <DayStatsCell
                       key={day.date}

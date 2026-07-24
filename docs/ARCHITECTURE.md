@@ -33,6 +33,8 @@ EVENT_END_DATE = "2026-08-30";
 
 逻辑中始终使用 `YYYY-MM-DD` 字符串，不把日期转换为 UTC timestamp。
 
+页面按五个自然周分组，但每周只展示星期五、星期六、星期日。前端、Edge Function 校验和数据库 RPC 都只接受这些可见日期。
+
 ## 数据保存流程
 
 1. 用户点击单元格，只更新 React state。

@@ -4,6 +4,7 @@ export const EVENT_TITLE = "聚会时间统计";
 export const EVENT_START_DATE = "2026-07-27";
 export const EVENT_END_DATE = "2026-08-30";
 export const MEALS: Meal[] = ["lunch", "dinner"];
+const VISIBLE_WEEKDAY_INDEXES = new Set([5, 6, 0]);
 
 export const MEAL_LABEL: Record<Meal, string> = {
   lunch: "午餐",
@@ -49,6 +50,12 @@ export function buildDateRange(
   startDate = EVENT_START_DATE,
   endDate = EVENT_END_DATE,
 ): DayInfo[] {
+  return buildCalendarDateRange(startDate, endDate).filter((day) =>
+    VISIBLE_WEEKDAY_INDEXES.has(day.weekdayIndex),
+  );
+}
+
+function buildCalendarDateRange(startDate = EVENT_START_DATE, endDate = EVENT_END_DATE): DayInfo[] {
   const start = parseLocalDate(startDate);
   const end = parseLocalDate(endDate);
   const days: DayInfo[] = [];
@@ -72,7 +79,7 @@ export function buildDateRange(
   return days;
 }
 
-export function buildWeeks(days = buildDateRange()): WeekInfo[] {
+export function buildWeeks(days = buildCalendarDateRange()): WeekInfo[] {
   if (days.length % 7 !== 0) {
     throw new Error("固定日期范围必须能拆分为完整自然周。");
   }
@@ -91,7 +98,7 @@ export function buildWeeks(days = buildDateRange()): WeekInfo[] {
     weeks.push({
       index: weekNumber,
       title: `第${toChineseNumber(weekNumber)}周｜${first.month}月${first.day}日—${last.month}月${last.day}日`,
-      days: weekDays,
+      days: weekDays.filter((day) => VISIBLE_WEEKDAY_INDEXES.has(day.weekdayIndex)),
     });
   }
 

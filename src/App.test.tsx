@@ -37,7 +37,7 @@ describe("App 提交流程", () => {
     const api = createApi();
     render(<App api={api} />);
 
-    await user.click(firstSlot("slot-2026-07-27:lunch"));
+    await user.click(firstSlot("slot-2026-07-31:lunch"));
     expect(api.submitAvailability).not.toHaveBeenCalled();
 
     await user.type(screen.getByLabelText("你的名字"), "小陈");
@@ -46,19 +46,19 @@ describe("App 提交流程", () => {
     await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
     expect(payload.displayName).toBe("小陈");
-    expect(payload.slots).toEqual([{ date: "2026-07-27", meal: "lunch" }]);
+    expect(payload.slots).toEqual([{ date: "2026-07-31", meal: "lunch" }]);
   });
 
   it("可以按住拖过多个格子进行涂抹选择", () => {
     const api = createApi();
     render(<App api={api} />);
 
-    fireEvent.pointerDown(firstSlot("slot-2026-07-30:lunch"));
-    fireEvent.pointerEnter(firstSlot("slot-2026-07-31:lunch"));
+    fireEvent.pointerDown(firstSlot("slot-2026-07-31:lunch"));
+    fireEvent.pointerEnter(firstSlot("slot-2026-08-01:lunch"));
     fireEvent.pointerUp(window);
 
-    expect(firstSlot("slot-2026-07-30:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(firstSlot("slot-2026-07-31:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-01:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
@@ -67,19 +67,19 @@ describe("App 提交流程", () => {
     const api = createApi();
     render(<App api={api} />);
 
-    await user.click(firstSlot("slot-2026-08-10:lunch"));
-    await user.click(firstSlot("slot-2026-08-11:dinner"));
-    await user.click(firstSlot("slot-2026-08-17:lunch"));
+    await user.click(firstSlot("slot-2026-08-14:lunch"));
+    await user.click(firstSlot("slot-2026-08-15:dinner"));
+    await user.click(firstSlot("slot-2026-08-21:lunch"));
 
-    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
-    expect(firstSlot("slot-2026-08-17:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-14:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-21:lunch")).toHaveAttribute("aria-pressed", "true");
 
     await user.click(screen.getByRole("button", { name: "清空第3周" }));
 
     expect(window.confirm).not.toHaveBeenCalledWith("是否要清空所有已选日期？");
-    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "false");
-    expect(firstSlot("slot-2026-08-11:dinner")).toHaveAttribute("aria-pressed", "false");
-    expect(firstSlot("slot-2026-08-17:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-14:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-15:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-21:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
@@ -90,11 +90,11 @@ describe("App 提交流程", () => {
 
     await user.click(screen.getByRole("button", { name: "全选第3周" }));
 
-    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
-    expect(firstSlot("slot-2026-08-10:dinner")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-14:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-14:dinner")).toHaveAttribute("aria-pressed", "true");
     expect(firstSlot("slot-2026-08-16:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(firstSlot("slot-2026-08-16:dinner")).toHaveAttribute("aria-pressed", "true");
-    expect(firstSlot("slot-2026-08-17:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-21:lunch")).toHaveAttribute("aria-pressed", "false");
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
@@ -104,8 +104,8 @@ describe("App 提交流程", () => {
       findSubmissionByName: vi.fn().mockResolvedValue({
         displayName: "小陈",
         slots: [
-          { date: "2026-08-10", meal: "lunch" },
-          { date: "2026-08-11", meal: "dinner" },
+          { date: "2026-08-14", meal: "lunch" },
+          { date: "2026-08-15", meal: "dinner" },
         ],
       }),
     });
@@ -116,8 +116,8 @@ describe("App 提交流程", () => {
 
     await waitFor(() => expect(api.findSubmissionByName).toHaveBeenCalledWith("小陈"));
     expect(await screen.findByText("已加载这个名字最近一次提交的时间表。")).toBeInTheDocument();
-    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
-    expect(firstSlot("slot-2026-08-11:dinner")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-14:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-15:dinner")).toHaveAttribute("aria-pressed", "true");
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
@@ -134,8 +134,8 @@ describe("App 提交流程", () => {
     const api = createApi();
     render(<App api={api} />);
 
-    await user.click(firstSlot("slot-2026-08-10:lunch"));
-    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
+    await user.click(firstSlot("slot-2026-08-14:lunch"));
+    expect(firstSlot("slot-2026-08-14:lunch")).toHaveAttribute("aria-pressed", "true");
 
     await user.click(screen.getByRole("button", { name: "锁定第3周" }));
     expect(screen.getByRole("button", { name: "解锁第3周" })).toHaveAttribute(
@@ -145,16 +145,16 @@ describe("App 提交流程", () => {
     expect(screen.getByRole("button", { name: "全选第3周" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "清空第3周" })).toBeDisabled();
 
-    await user.click(firstSlot("slot-2026-08-10:lunch"));
+    await user.click(firstSlot("slot-2026-08-14:lunch"));
     await user.click(screen.getByRole("button", { name: "全选第3周" }));
     await user.click(screen.getByRole("button", { name: "清空第3周" }));
-    fireEvent.pointerDown(firstSlot("slot-2026-08-11:dinner"));
-    fireEvent.pointerEnter(firstSlot("slot-2026-08-12:dinner"));
+    fireEvent.pointerDown(firstSlot("slot-2026-08-15:dinner"));
+    fireEvent.pointerEnter(firstSlot("slot-2026-08-16:dinner"));
     fireEvent.pointerUp(window);
 
-    expect(firstSlot("slot-2026-08-10:lunch")).toHaveAttribute("aria-pressed", "true");
-    expect(firstSlot("slot-2026-08-11:dinner")).toHaveAttribute("aria-pressed", "false");
-    expect(firstSlot("slot-2026-08-12:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-14:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-08-15:dinner")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-08-16:dinner")).toHaveAttribute("aria-pressed", "false");
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
@@ -234,7 +234,7 @@ describe("App 提交流程", () => {
     const api = createApi();
     render(<App api={api} />);
 
-    await user.click(firstSlot("slot-2026-07-27:lunch"));
+    await user.click(firstSlot("slot-2026-07-31:lunch"));
     await user.type(screen.getByLabelText("你的名字"), "小陈");
     await user.click(screen.getByRole("button", { name: "提交时间" }));
 
@@ -257,7 +257,7 @@ describe("App 提交流程", () => {
     const api = createApi();
     render(<App api={api} />);
 
-    await user.click(firstSlot("slot-2026-07-27:lunch"));
+    await user.click(firstSlot("slot-2026-07-31:lunch"));
     await user.type(screen.getByLabelText("你的名字"), "小陈");
     await user.click(screen.getByRole("button", { name: "提交时间" }));
 
@@ -273,7 +273,7 @@ describe("App 提交流程", () => {
       participantToken: payload.participantToken,
     });
     expect(await screen.findByText("已清空这个名字的提交记录。")).toBeInTheDocument();
-    expect(firstSlot("slot-2026-07-27:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(firstSlot("slot-2026-07-31:lunch")).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "提交时间" })).toBeInTheDocument();
   });
 
@@ -297,13 +297,13 @@ describe("App 提交流程", () => {
     });
     render(<App api={api} />);
 
-    await user.click(firstSlot("slot-2026-07-27:dinner"));
+    await user.click(firstSlot("slot-2026-07-31:dinner"));
     await user.type(screen.getByLabelText("你的名字"), "小张");
     await user.click(screen.getByRole("button", { name: "提交时间" }));
 
     expect(await screen.findByText("提交失败，请重试")).toBeInTheDocument();
     expect(screen.getByLabelText("你的名字")).toHaveValue("小张");
-    expect(firstSlot("slot-2026-07-27:dinner")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-07-31:dinner")).toHaveAttribute("aria-pressed", "true");
   });
 
   it("已有 participant token 时能够恢复此前结果", async () => {
@@ -311,14 +311,14 @@ describe("App 提交流程", () => {
     const api = createApi({
       getMySubmission: vi.fn().mockResolvedValue({
         displayName: "旧名字",
-        slots: [{ date: "2026-07-27", meal: "lunch" }],
+        slots: [{ date: "2026-07-31", meal: "lunch" }],
       }),
     });
 
     render(<App api={api} />);
 
     expect(await screen.findByDisplayValue("旧名字")).toBeInTheDocument();
-    expect(firstSlot("slot-2026-07-27:lunch")).toHaveAttribute("aria-pressed", "true");
+    expect(firstSlot("slot-2026-07-31:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "更新提交" })).toBeInTheDocument();
   });
 
@@ -327,19 +327,19 @@ describe("App 提交流程", () => {
     const api = createApi({
       getMySubmission: vi.fn().mockResolvedValue({
         displayName: "小赵",
-        slots: [{ date: "2026-07-27", meal: "lunch" }],
+        slots: [{ date: "2026-07-31", meal: "lunch" }],
       }),
     });
     const user = userEvent.setup();
     render(<App api={api} />);
 
     await screen.findByDisplayValue("小赵");
-    await user.click(firstSlot("slot-2026-07-27:lunch"));
-    await user.click(firstSlot("slot-2026-07-28:dinner"));
+    await user.click(firstSlot("slot-2026-07-31:lunch"));
+    await user.click(firstSlot("slot-2026-08-01:dinner"));
     await user.click(screen.getByRole("button", { name: "更新提交" }));
 
     await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
-    expect(payload.slots).toEqual([{ date: "2026-07-28", meal: "dinner" }]);
+    expect(payload.slots).toEqual([{ date: "2026-08-01", meal: "dinner" }]);
   });
 });
