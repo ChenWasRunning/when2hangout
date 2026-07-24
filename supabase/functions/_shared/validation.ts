@@ -1,4 +1,5 @@
 export type Meal = "lunch" | "dinner";
+export type ParticipationStatus = "available" | "unavailable";
 
 export type SelectedSlot = {
   date: string;
@@ -76,6 +77,18 @@ export function validateSlots(value: unknown): SelectedSlot[] {
   });
 }
 
+export function validateParticipationStatus(value: unknown): ParticipationStatus {
+  if (value === undefined || value === null) {
+    return "available";
+  }
+
+  if (value !== "available" && value !== "unavailable") {
+    throw new Error("参与状态不正确");
+  }
+
+  return value;
+}
+
 function getWeekdayIndex(date: string): number {
   const [yearValue, monthValue, dayValue] = date.split("-").map(Number);
   const monthOffset = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
@@ -86,13 +99,14 @@ function getWeekdayIndex(date: string): number {
   }
 
   return (
-    year +
-    Math.floor(year / 4) -
-    Math.floor(year / 100) +
-    Math.floor(year / 400) +
-    monthOffset[month - 1] +
-    dayValue
-  ) % 7;
+    (year +
+      Math.floor(year / 4) -
+      Math.floor(year / 100) +
+      Math.floor(year / 400) +
+      monthOffset[month - 1] +
+      dayValue) %
+    7
+  );
 }
 
 export async function hashParticipantToken(token: string): Promise<string> {

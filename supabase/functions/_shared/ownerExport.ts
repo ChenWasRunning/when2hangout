@@ -1,8 +1,14 @@
 type OwnerExportRow = Record<string, string | number | null>;
 type Meal = "lunch" | "dinner";
+type ParticipationStatus = "available" | "unavailable";
 type SelectedSlot = {
   date: string;
   meal: Meal;
+};
+type SubmissionSnapshot = {
+  displayName?: string;
+  participationStatus: ParticipationStatus;
+  slots: SelectedSlot[];
 };
 
 type DatabaseClient = {
@@ -17,6 +23,7 @@ type EmailSummary = {
 const exportColumns = [
   "名字",
   "提交时间",
+  "状态",
   "7.31 午",
   "7.31 晚",
   "8.1 午",
@@ -111,9 +118,7 @@ export function renderOwnerExportEmailHtml(
   title: string,
   summary: EmailSummary,
 ): string {
-  const summaryItems = summary.lines
-    .map((line) => `<li>${escapeHtml(line)}</li>`)
-    .join("");
+  const summaryItems = summary.lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
   const summaryHtml = `<section class="summary"><h2>${escapeHtml(summary.title)}</h2><ul>${summaryItems}</ul></section>`;
 
   return renderOwnerExportHtml(rows, title).replace(
@@ -177,10 +182,14 @@ export async function sendOwnerExportEmail(
 export async function fetchSubmissionSnapshot(
   supabase: DatabaseClient,
   options: { tokenHash: string; displayName: string },
-): Promise<{ displayName: string; slots: SelectedSlot[] } | null> {
+): Promise<{
+  displayName: string;
+  participationStatus: ParticipationStatus;
+  slots: SelectedSlot[];
+} | null> {
   const tokenResult = await supabase
     .from("participants")
-    .select("id, display_name")
+    .select("id, display_name, participation_status")
     .eq("participant_token_hash", options.tokenHash)
     .maybeSingle();
 
@@ -188,7 +197,8 @@ export async function fetchSubmissionSnapshot(
     throw tokenResult.error;
   }
 
-  const participant = tokenResult?.data ?? (await fetchLatestParticipantByName(supabase, options.displayName));
+  const participant =
+    tokenResult?.data ?? (await fetchLatestParticipantByName(supabase, options.displayName));
   if (!participant) {
     return null;
   }
@@ -196,28 +206,38 @@ export async function fetchSubmissionSnapshot(
   const slots = await fetchAvailabilitySlots(supabase, participant.id);
   return {
     displayName: participant.display_name,
+    participationStatus: normalizeParticipationStatus(participant.participation_status),
     slots,
   };
 }
 
 export function buildSubmissionEmailSummary(
   displayName: string,
-  beforeSlots: SelectedSlot[] | null,
-  afterSlots: SelectedSlot[],
+  beforeSubmission: SubmissionSnapshot | null,
+  afterSubmission: SubmissionSnapshot,
 ): EmailSummary {
-  if (!beforeSlots) {
+  if (!beforeSubmission) {
     return {
       title: `${displayName} 新增了日期填写`,
       lines: [
         `${displayName} 新增了日期填写。`,
-        `已选择：${formatSlotList(afterSlots)}`,
+        `状态：${formatParticipationStatus(afterSubmission.participationStatus)}`,
+        `已选择：${formatSubmissionSelection(afterSubmission)}`,
       ],
     };
   }
 
-  const addedSlots = diffSlots(afterSlots, beforeSlots);
-  const removedSlots = diffSlots(beforeSlots, afterSlots);
+  const addedSlots = diffSlots(afterSubmission.slots, beforeSubmission.slots);
+  const removedSlots = diffSlots(beforeSubmission.slots, afterSubmission.slots);
+  const statusChanged =
+    beforeSubmission.participationStatus !== afterSubmission.participationStatus;
   const lines = [`${displayName} 修改了日期填写。`];
+
+  if (statusChanged) {
+    lines.push(
+      `状态：${formatParticipationStatus(beforeSubmission.participationStatus)} → ${formatParticipationStatus(afterSubmission.participationStatus)}`,
+    );
+  }
 
   if (addedSlots.length > 0) {
     lines.push(`新增：${formatSlotList(addedSlots)}`);
@@ -227,7 +247,7 @@ export function buildSubmissionEmailSummary(
     lines.push(`取消：${formatSlotList(removedSlots)}`);
   }
 
-  if (addedSlots.length === 0 && removedSlots.length === 0) {
+  if (addedSlots.length === 0 && removedSlots.length === 0 && !statusChanged) {
     lines.push("选择内容没有变化。");
   }
 
@@ -279,10 +299,10 @@ function encodeBase64(value: string): string {
 async function fetchLatestParticipantByName(
   supabase: DatabaseClient,
   displayName: string,
-): Promise<{ id: string; display_name: string } | null> {
+): Promise<{ id: string; display_name: string; participation_status?: string } | null> {
   const { data, error } = await supabase
     .from("participants")
-    .select("id, display_name")
+    .select("id, display_name, participation_status")
     .eq("display_name", displayName)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -324,6 +344,22 @@ function formatSlotList(slots: SelectedSlot[]): string {
   return slots.map(formatSlot).join("，");
 }
 
+function formatSubmissionSelection(submission: SubmissionSnapshot): string {
+  if (submission.participationStatus === "unavailable") {
+    return "本次无法参与";
+  }
+
+  return formatSlotList(submission.slots);
+}
+
+function formatParticipationStatus(status: ParticipationStatus): string {
+  return status === "unavailable" ? "本次无法参与" : "可参与";
+}
+
+function normalizeParticipationStatus(value: unknown): ParticipationStatus {
+  return value === "unavailable" ? "unavailable" : "available";
+}
+
 function formatSlot(slot: SelectedSlot): string {
   const [, month, day] = slot.date.split("-");
   return `${Number(month)}.${Number(day)} ${slot.meal === "lunch" ? "午" : "晚"}`;
@@ -363,10 +399,5 @@ function parseSubmitTime(value: unknown): number {
   }
 
   const [, month, day, hour, minute] = match;
-  return (
-    Number(month) * 31 * 24 * 60 +
-    Number(day) * 24 * 60 +
-    Number(hour) * 60 +
-    Number(minute)
-  );
+  return Number(month) * 31 * 24 * 60 + Number(day) * 24 * 60 + Number(hour) * 60 + Number(minute);
 }

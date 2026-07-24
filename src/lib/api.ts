@@ -13,10 +13,7 @@ export class MissingSupabaseConfigError extends Error {
   }
 }
 
-async function invokeFunction<T>(
-  functionName: string,
-  body?: Record<string, unknown>,
-): Promise<T> {
+async function invokeFunction<T>(functionName: string, body?: Record<string, unknown>): Promise<T> {
   if (!supabase) {
     throw new MissingSupabaseConfigError();
   }
@@ -46,6 +43,7 @@ export const supabaseApi: AppApi = {
       participantToken: payload.participantToken,
       displayName: payload.displayName,
       slots: validateSlots(payload.slots),
+      participationStatus: payload.participationStatus,
     });
   },
 

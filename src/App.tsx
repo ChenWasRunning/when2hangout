@@ -3,11 +3,7 @@ import { NameLookupPanel } from "./components/NameLookupPanel";
 import { ResultsPage } from "./components/ResultsPage";
 import { SubmitPanel } from "./components/SubmitPanel";
 import { WeekTable } from "./components/WeekTable";
-import {
-  buildWeeks,
-  isValidMeal,
-  slotKey,
-} from "./lib/dates";
+import { buildWeeks, isValidMeal, slotKey } from "./lib/dates";
 import { MissingSupabaseConfigError } from "./lib/api";
 import { validateDisplayName, normalizeDisplayName } from "./lib/name";
 import {
@@ -25,7 +21,7 @@ import {
   toggleSlot,
   validateSlots,
 } from "./lib/selection";
-import type { AppApi, Meal } from "./types";
+import type { AppApi, Meal, ParticipationStatus } from "./types";
 
 type AppProps = {
   api: AppApi;
@@ -38,8 +34,11 @@ type PaintMode = {
 };
 
 export default function App({ api }: AppProps) {
-  const [route, setRoute] = useState(() => (window.location.hash === "#results" ? "results" : "form"));
+  const [route, setRoute] = useState(() =>
+    window.location.hash === "#results" ? "results" : "form",
+  );
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
+  const [participationStatus, setParticipationStatus] = useState<ParticipationStatus>("available");
   const [displayName, setDisplayName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
@@ -76,6 +75,7 @@ export default function App({ api }: AppProps) {
         if (!active || !submission) return;
         setDisplayName(submission.displayName);
         setSelectedKeys(slotsToKeys(submission.slots));
+        setParticipationStatus(submission.participationStatus ?? "available");
         setIsExistingParticipant(true);
         setLoadedSubmissionName(submission.displayName);
         saveParticipantTokenForName(submission.displayName, token);
@@ -106,6 +106,7 @@ export default function App({ api }: AppProps) {
     }
 
     setSubmitState((current) => (current === "success" ? "idle" : current));
+    setParticipationStatus("available");
     setSelectedKeys((current) => setSlotSelected(current, { date, meal }, selected));
   }, []);
 
@@ -149,6 +150,7 @@ export default function App({ api }: AppProps) {
 
   const handleToggle = useCallback((date: string, meal: Meal) => {
     setSubmitState((current) => (current === "success" ? "idle" : current));
+    setParticipationStatus("available");
     setSelectedKeys((current) => toggleSlot(current, { date, meal }));
   }, []);
 
@@ -182,8 +184,19 @@ export default function App({ api }: AppProps) {
 
   const handleSelectWeek = useCallback((slots: { date: string; meal: Meal }[]) => {
     setSubmitState((current) => (current === "success" ? "idle" : current));
+    setParticipationStatus("available");
     setSelectedKeys((current) => setSlotsSelected(current, slots, true));
   }, []);
+
+  const handleToggleUnavailable = useCallback(() => {
+    setSubmitState((current) => (current === "success" ? "idle" : current));
+    if (participationStatus === "unavailable") {
+      setParticipationStatus("available");
+    } else {
+      setSelectedKeys(new Set());
+      setParticipationStatus("unavailable");
+    }
+  }, [participationStatus]);
 
   const handleToggleWeekLock = useCallback((weekIndex: number) => {
     setLockedWeekIndexes((current) => {
@@ -222,6 +235,7 @@ export default function App({ api }: AppProps) {
 
       setDisplayName(submission.displayName);
       setSelectedKeys(slotsToKeys(submission.slots));
+      setParticipationStatus(submission.participationStatus ?? "available");
       setSubmitState((current) => (current === "success" ? "idle" : current));
       setIsExistingParticipant(true);
       setLoadedSubmissionName(submission.displayName);
@@ -258,7 +272,9 @@ export default function App({ api }: AppProps) {
       return;
     }
 
-    if (!window.confirm(`确定要清空「${normalizedName}」已经填写的记录吗？清空后统计人数也会减少。`)) {
+    if (
+      !window.confirm(`确定要清空「${normalizedName}」已经填写的记录吗？清空后统计人数也会减少。`)
+    ) {
       return;
     }
 
@@ -271,6 +287,7 @@ export default function App({ api }: AppProps) {
       removeParticipantTokenForName(normalizedName);
       setDisplayName(normalizedName);
       setSelectedKeys(new Set());
+      setParticipationStatus("available");
       setIsExistingParticipant(false);
       setLoadedSubmissionName(null);
       setSubmitState("idle");
@@ -300,8 +317,13 @@ export default function App({ api }: AppProps) {
       return;
     }
 
-    const slots = validateSlots(keysToSlots(selectedKeys));
-    if (slots.length === 0 && !window.confirm("你尚未选择任何时间，是否仍要提交？")) {
+    const slots =
+      participationStatus === "unavailable" ? [] : validateSlots(keysToSlots(selectedKeys));
+    if (
+      participationStatus === "available" &&
+      slots.length === 0 &&
+      !window.confirm("你尚未选择任何时间，是否仍要提交？")
+    ) {
       return;
     }
 
@@ -314,6 +336,7 @@ export default function App({ api }: AppProps) {
         participantToken,
         displayName: normalizedName,
         slots,
+        participationStatus,
       });
       saveParticipantTokenForName(normalizedName, participantToken);
       setDisplayName(normalizedName);
@@ -329,7 +352,7 @@ export default function App({ api }: AppProps) {
         setSubmitError("提交失败，请重试");
       }
     }
-  }, [api, displayName, selectedKeys, submitState]);
+  }, [api, displayName, participationStatus, selectedKeys, submitState]);
 
   const showResults = useCallback(() => {
     window.location.hash = "results";
@@ -350,12 +373,15 @@ export default function App({ api }: AppProps) {
       <header className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
         <h1 className="text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-stone-700">
-          请先输入你的名字，再选择7月27日至8月30日期间每周五、周六、周日有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期。完成选择后，请在页面底部点击提交。
+          请先输入你的名字，再选择7月27日至8月30日期间每周五、周六、周日有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期；如果以上时间都不合适或这段时间在外地，可以在第五周末尾选择本次无法参与。完成选择后，请在页面底部点击提交。
         </p>
       </header>
 
       {isRestoring ? (
-        <div role="status" className="mt-4 rounded-lg border border-stone-200 bg-white p-4 text-sm font-bold text-stone-700">
+        <div
+          role="status"
+          className="mt-4 rounded-lg border border-stone-200 bg-white p-4 text-sm font-bold text-stone-700"
+        >
           正在加载你之前的提交……
         </div>
       ) : null}
@@ -379,7 +405,8 @@ export default function App({ api }: AppProps) {
           const normalizedName = normalizeDisplayName(value);
           setLoadedSubmissionName((current) => (current === normalizedName ? current : null));
           setIsExistingParticipant(
-            Boolean(getParticipantTokenForName(normalizedName)) || loadedSubmissionName === normalizedName,
+            Boolean(getParticipantTokenForName(normalizedName)) ||
+              loadedSubmissionName === normalizedName,
           );
           setSubmitState((current) => (current === "success" ? "idle" : current));
         }}
@@ -392,7 +419,7 @@ export default function App({ api }: AppProps) {
           请选择你有空的时间
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          点击单元格可以切换状态；按住一个单元格拖过其它单元格，可以像涂色一样快速选择或取消一片时间。当前只显示每周五、周六、周日，淡黄色日期为周六或周日。
+          点击单元格可以切换状态；按住一个单元格拖过其它单元格，可以像涂色一样快速选择或取消一片时间。当前只显示每周五、周六、周日，所有日期统一用淡黄色显示。
         </p>
         <div className="mt-4 grid gap-5">
           {weeks.map((week) => (
@@ -401,12 +428,14 @@ export default function App({ api }: AppProps) {
               week={week}
               selectedKeys={selectedKeys}
               locked={lockedWeekIndexes.has(week.index)}
+              participationStatus={participationStatus}
               onToggle={handleToggle}
               onPaintStart={handlePaintStart}
               onPaintEnter={handlePaintEnter}
               onToggleLock={handleToggleWeekLock}
               onSelectWeek={handleSelectWeek}
               onClearWeek={handleClearWeek}
+              onToggleUnavailable={handleToggleUnavailable}
             />
           ))}
         </div>

@@ -48,7 +48,7 @@ sha256(PARTICIPANT_TOKEN_PEPPER + ":" + participantToken)
 - 删除其他参与者
 - 直接写入 availability
 
-前端隐藏周一到周四不是唯一防线。Edge Function 和数据库 RPC 都只接受 `2026-07-27` 至 `2026-08-30` 范围内的周五、周六、周日 slot；数据库约束也会拒绝其它星期。
+前端隐藏周一到周四不是唯一防线。Edge Function 和数据库 RPC 都只接受 `2026-07-27` 至 `2026-08-30` 范围内的周五、周六、周日 slot；数据库约束也会拒绝其它星期。“本次无法参与”只保存参与状态 `unavailable`，不会写入伪造日期。
 
 按姓名搜索会返回该显示姓名最近一次提交的可用时段。这个功能不暴露 token hash 或 service-role key，但它不适合作为强身份验证方式，也不满足“姓名只有组织者能看到”的严格隐私目标。当前产品明确采用弱身份模型：只要知道名字字符串，就可以更新该名字最近一次提交。
 
@@ -68,9 +68,10 @@ Edge Functions 使用 service-role key 调用数据库 RPC。这样可以在服�
 
 1. upsert participant；
 2. 如果 token 不匹配但名字已存在，则更新该名字最近一次提交，并绑定当前设备 token；
-3. 删除该 participant 旧的 availability；
-4. 插入本次提交的完整 slots；
-5. 由数据库函数作为一次逻辑操作执行。
+3. 更新该 participant 的参与状态；
+4. 删除该 participant 旧的 availability；
+5. 插入本次提交的完整 slots；
+6. 由数据库函数作为一次逻辑操作执行。
 
 ## 已知限制
 

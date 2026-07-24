@@ -43,11 +43,13 @@ EVENT_END_DATE = "2026-08-30";
 4. 前端验证姓名和 slots。
 5. 前端按当前姓名读取 localStorage participant token；没有该姓名的 token 时生成新 token。
 6. 前端调用 `submit-availability` Edge Function。
-7. Edge Function 验证 token、姓名和 slots。
+7. Edge Function 验证 token、姓名、参与状态和 slots。
 8. Edge Function 哈希 token。
 9. Edge Function 调用 `submit_availability` RPC。
 10. RPC 优先按 token 更新；如果 token 不匹配但名字已存在，则更新同名最近一条记录，并绑定当前设备 token。
-11. RPC 在一次数据库函数调用内替换该参与者完整 availability。
+11. RPC 在一次数据库函数调用内更新参与状态并替换该参与者完整 availability。
+
+第五周末尾的“本次无法参与”会把前端状态设为 `unavailable` 并清空 slots。用户之后再点任意午餐/晚餐格或全选某周，会自动恢复为 `available`。
 
 顶部姓名搜索调用 `submission-by-name` Edge Function。它用于加载同名最近一次提交到当前页面；搜索成功后底部按钮显示“更新提交”。保存仍然必须由用户点击底部提交按钮触发。
 
@@ -62,7 +64,7 @@ EVENT_END_DATE = "2026-08-30";
 数据库 migration 创建 `owner_availability_matrix` view，把每个参与者展开为：
 
 ```text
-名字 | 提交时间 | 7.31 午 | 7.31 晚 | 8.1 午 | ...
+名字 | 提交时间 | 状态 | 7.31 午 | 7.31 晚 | 8.1 午 | ...
 ```
 
-`owner-export` Edge Function 用 `OWNER_EXPORT_SECRET` 保护，返回按提交时间升序排列的 HTML 或 CSV。`submit-availability` 和 `clear-submission` 成功后会调用共享的 owner export helper；如果配置了 `RESEND_API_KEY`，后端会把最新 HTML 表格和 CSV 附件发送到 `OWNER_EMAIL`。
+“状态”列显示“可参与”或“本次无法参与”。`owner-export` Edge Function 用 `OWNER_EXPORT_SECRET` 保护，返回按提交时间升序排列的 HTML 或 CSV。`submit-availability` 和 `clear-submission` 成功后会调用共享的 owner export helper；如果配置了 `RESEND_API_KEY`，后端会把最新 HTML 表格和 CSV 附件发送到 `OWNER_EMAIL`。

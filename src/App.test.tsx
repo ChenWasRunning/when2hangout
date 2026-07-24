@@ -31,6 +31,10 @@ function firstSlot(testId: string): HTMLElement {
   return screen.getAllByTestId(testId)[0] as HTMLElement;
 }
 
+function unavailableOption(): HTMLElement {
+  return screen.getAllByTestId("unavailable-option")[0] as HTMLElement;
+}
+
 describe("App 提交流程", () => {
   it("点击提交前不会调用后台保存接口，点击提交后才调用", async () => {
     const user = userEvent.setup();
@@ -98,6 +102,44 @@ describe("App 提交流程", () => {
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
+  it("第五周可以选择本次无法参与，并清空已选日期后提交", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.click(firstSlot("slot-2026-08-28:lunch"));
+    await user.click(unavailableOption());
+
+    expect(firstSlot("slot-2026-08-28:lunch")).toHaveAttribute("aria-pressed", "false");
+    expect(unavailableOption()).toHaveAttribute("aria-pressed", "true");
+
+    await user.type(screen.getByLabelText("你的名字"), "外地朋友");
+    await user.click(screen.getByRole("button", { name: "提交时间" }));
+
+    await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(1));
+    const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
+    expect(payload.displayName).toBe("外地朋友");
+    expect(payload.slots).toEqual([]);
+    expect(payload.participationStatus).toBe("unavailable");
+    expect(window.confirm).not.toHaveBeenCalledWith("你尚未选择任何时间，是否仍要提交？");
+  });
+
+  it("选择日期后会退出本次无法参与状态", async () => {
+    const user = userEvent.setup();
+    const api = createApi();
+    render(<App api={api} />);
+
+    await user.click(unavailableOption());
+    await user.click(firstSlot("slot-2026-08-28:dinner"));
+    await user.type(screen.getByLabelText("你的名字"), "小周");
+    await user.click(screen.getByRole("button", { name: "提交时间" }));
+
+    await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(1));
+    const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
+    expect(payload.participationStatus).toBe("available");
+    expect(payload.slots).toEqual([{ date: "2026-08-28", meal: "dinner" }]);
+  });
+
   it("可以按姓名搜索并加载已经提交过的时间表", async () => {
     const user = userEvent.setup();
     const api = createApi({
@@ -120,6 +162,25 @@ describe("App 提交流程", () => {
     expect(firstSlot("slot-2026-08-15:dinner")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "更新提交" })).toBeInTheDocument();
     expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
+  it("可以按姓名搜索并恢复本次无法参与状态", async () => {
+    const user = userEvent.setup();
+    const api = createApi({
+      findSubmissionByName: vi.fn().mockResolvedValue({
+        displayName: "外地朋友",
+        participationStatus: "unavailable",
+        slots: [],
+      }),
+    });
+    render(<App api={api} />);
+
+    await user.type(screen.getByLabelText("你的名字"), "外地朋友");
+    await user.click(screen.getByRole("button", { name: "搜索" }));
+
+    expect(await screen.findByText("已加载这个名字最近一次提交的时间表。")).toBeInTheDocument();
+    expect(unavailableOption()).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "更新提交" })).toBeInTheDocument();
   });
 
   it("跨设备按姓名搜索后会用更新提交状态保存", async () => {
@@ -211,7 +272,10 @@ describe("App 提交流程", () => {
     const api = createApi();
     render(<App api={api} />);
 
-    await user.type(screen.getByLabelText("你的名字"), "一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一");
+    await user.type(
+      screen.getByLabelText("你的名字"),
+      "一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一",
+    );
     await user.click(screen.getByRole("button", { name: "提交时间" }));
 
     expect(await screen.findByText("名字不能超过30个字符")).toBeInTheDocument();
@@ -291,7 +355,9 @@ describe("App 提交流程", () => {
 
     await user.click(screen.getByRole("button", { name: "清空记录" }));
 
-    expect(window.confirm).toHaveBeenCalledWith("确定要清空「小陈」已经填写的记录吗？清空后统计人数也会减少。");
+    expect(window.confirm).toHaveBeenCalledWith(
+      "确定要清空「小陈」已经填写的记录吗？清空后统计人数也会减少。",
+    );
     await waitFor(() => expect(api.clearSubmission).toHaveBeenCalledTimes(1));
     expect(api.clearSubmission).toHaveBeenCalledWith({
       displayName: "小陈",
@@ -311,7 +377,9 @@ describe("App 提交流程", () => {
     await user.click(screen.getByRole("button", { name: "清空记录" }));
 
     expect(await screen.findByText("本浏览器没有这个名字的可清空记录。")).toBeInTheDocument();
-    expect(window.confirm).not.toHaveBeenCalledWith("确定要清空「小陈」已经填写的记录吗？清空后统计人数也会减少。");
+    expect(window.confirm).not.toHaveBeenCalledWith(
+      "确定要清空「小陈」已经填写的记录吗？清空后统计人数也会减少。",
+    );
     expect(api.clearSubmission).not.toHaveBeenCalled();
   });
 

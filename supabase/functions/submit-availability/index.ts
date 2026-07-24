@@ -8,6 +8,7 @@ import { createAdminClient } from "../_shared/supabaseAdmin.ts";
 import {
   hashParticipantToken,
   normalizeName,
+  validateParticipationStatus,
   validateParticipantToken,
   validateSlots,
 } from "../_shared/validation.ts";
@@ -24,7 +25,8 @@ Deno.serve(async (request) => {
     const body = await request.json();
     const participantToken = validateParticipantToken(body.participantToken);
     const displayName = normalizeName(body.displayName);
-    const slots = validateSlots(body.slots);
+    const participationStatus = validateParticipationStatus(body.participationStatus);
+    const slots = participationStatus === "unavailable" ? [] : validateSlots(body.slots);
     const participantTokenHash = await hashParticipantToken(participantToken);
 
     const supabase = createAdminClient();
@@ -39,6 +41,7 @@ Deno.serve(async (request) => {
         slot_date: slot.date,
         slot_meal: slot.meal,
       })),
+      p_participation_status: participationStatus,
     });
 
     if (error) {
@@ -46,7 +49,19 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: "提交失败，请重试" }, 500);
     }
 
-    const summary = buildSubmissionEmailSummary(displayName, previousSubmission?.slots ?? null, slots);
+    const summary = buildSubmissionEmailSummary(
+      displayName,
+      previousSubmission
+        ? {
+            slots: previousSubmission.slots,
+            participationStatus: previousSubmission.participationStatus,
+          }
+        : null,
+      {
+        slots,
+        participationStatus,
+      },
+    );
     await sendOwnerExportEmail(supabase, "提交或更新", summary).catch((emailError) => {
       console.error(emailError);
     });

@@ -22,6 +22,7 @@
 - 支持在每周右上角一键全选该周所有午餐/晚餐。
 - 支持在每周右上角一键清空该周已选择的午餐/晚餐。
 - 支持每周锁定；锁定后这一周不会被点击、拖拽涂抹、全选或清空，避免手机滑动时误触。
+- 第五周末尾提供“本次无法参与”选项，适合以上时间都不合适或这段时间在外地的朋友。
 - 参与者先在顶部输入名字，再选择时间，最后在页面底部点击提交。
 - 点击提交前不会写入 Supabase。
 - 首次成功提交后，浏览器 localStorage 按姓名保存随机 participant token。
@@ -81,7 +82,7 @@ supabase/migrations/20260722000000_initial_schema.sql
 - `get_public_stats`
 - RLS、约束、触发器和 RPC 权限
 
-`availability.date` 只允许 `2026-07-27` 至 `2026-08-30` 范围内的周五、周六、周日。
+`participants.participation_status` 记录 `available` 或 `unavailable`。`availability.date` 只允许 `2026-07-27` 至 `2026-08-30` 范围内的周五、周六、周日。
 
 ## Edge Functions 部署
 
@@ -129,8 +130,8 @@ from public.owner_availability_matrix;
 格式类似：
 
 ```text
-名字 | 提交时间 | 7.31 午 | 7.31 晚 | 8.1 午 | ...
-ID123 | 7.24 11:12 | 1 | 1 | 0 | ...
+名字 | 提交时间 | 状态 | 7.31 午 | 7.31 晚 | 8.1 午 | ...
+ID123 | 7.24 11:12 | 可参与 | 1 | 1 | 0 | ...
 ```
 
 也可以用 Edge Function 导出 HTML 或 CSV：
@@ -193,7 +194,7 @@ participant_token_hash
 
 按姓名搜索只返回该姓名最近一次提交的显示姓名和可用时段，不返回 token hash、participant id 或其它内部字段。同名时返回最近更新的一份。按当前产品设定，只要知道名字字符串，就可以跨设备更新这个名字最近一次提交。
 
-`submit_availability` RPC 会优先按 token 更新；如果当前设备没有该名字的 token，但后台已经存在同名记录，则更新这个名字最近一次提交，并把它绑定到当前设备 token。随后删除旧 availability、插入本次完整选择。后台只接受固定范围内的周五、周六、周日 slot。
+`submit_availability` RPC 会优先按 token 更新；如果当前设备没有该名字的 token，但后台已经存在同名记录，则更新这个名字最近一次提交，并把它绑定到当前设备 token。随后更新参与状态、删除旧 availability、插入本次完整选择。选择“本次无法参与”时会保存为 `unavailable` 并清空 availability。后台只接受固定范围内的周五、周六、周日 slot。
 
 `clear_submission` RPC 只会删除 token hash 和显示姓名同时匹配的 participant。availability 通过外键级联删除。
 
@@ -217,7 +218,7 @@ participant_token_hash
 truncate table public.availability, public.participants restart identity cascade;
 ```
 
-这会删除所有参与者、姓名、备注和已选时间。执行后也建议在自己的浏览器里清除该网站的 localStorage，或用无痕窗口重新测试，避免页面继续尝试恢复旧的 participant token。
+这会删除所有参与者、姓名、参与状态和已选时间。执行后也建议在自己的浏览器里清除该网站的 localStorage，或用无痕窗口重新测试，避免页面继续尝试恢复旧的 participant token。
 
 ## 测试和构建命令
 

@@ -1,4 +1,5 @@
 export type Meal = "lunch" | "dinner";
+export type ParticipationStatus = "available" | "unavailable";
 
 export type SelectedSlot = {
   date: string;
@@ -24,6 +25,7 @@ export type WeekInfo = {
 export type MySubmission = {
   displayName: string;
   slots: SelectedSlot[];
+  participationStatus?: ParticipationStatus;
 };
 
 export type StatsSlot = SelectedSlot & {
@@ -39,6 +41,7 @@ export type SubmitPayload = {
   participantToken: string;
   displayName: string;
   slots: SelectedSlot[];
+  participationStatus: ParticipationStatus;
 };
 
 export type ClearSubmissionPayload = {
