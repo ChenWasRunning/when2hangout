@@ -45,7 +45,7 @@ export async function fetchOwnerExportRows(supabase: {
     throw error;
   }
 
-  return data ?? [];
+  return sortOwnerExportRows(data ?? []);
 }
 
 export function renderOwnerExportHtml(rows: OwnerExportRow[], title = "聚会时间填写列表"): string {
@@ -166,4 +166,30 @@ function encodeBase64(value: string): string {
     binary += String.fromCharCode(byte);
   }
   return btoa(binary);
+}
+
+function sortOwnerExportRows(rows: OwnerExportRow[]): OwnerExportRow[] {
+  return [...rows].sort((a, b) => {
+    const timeDiff = parseSubmitTime(a["提交时间"]) - parseSubmitTime(b["提交时间"]);
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+
+    return String(a["名字"] ?? "").localeCompare(String(b["名字"] ?? ""), "zh-Hans-CN");
+  });
+}
+
+function parseSubmitTime(value: unknown): number {
+  const match = /^(\d{1,2})\.(\d{1,2})\s+(\d{1,2}):(\d{2})$/.exec(String(value ?? ""));
+  if (!match) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const [, month, day, hour, minute] = match;
+  return (
+    Number(month) * 31 * 24 * 60 +
+    Number(day) * 24 * 60 +
+    Number(hour) * 60 +
+    Number(minute)
+  );
 }

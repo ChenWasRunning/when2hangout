@@ -33,7 +33,7 @@ select
   case when exists (select 1 from public.availability a where a.participant_id = p.id and a.date = date '2026-08-30' and a.meal = 'lunch') then 1 else 0 end as "8.30 午",
   case when exists (select 1 from public.availability a where a.participant_id = p.id and a.date = date '2026-08-30' and a.meal = 'dinner') then 1 else 0 end as "8.30 晚"
 from public.participants p
-order by p.updated_at desc, p.display_name;
+order by p.updated_at asc, p.display_name;
 
 revoke all on public.owner_availability_matrix from public, anon, authenticated;
 grant select on public.owner_availability_matrix to service_role;

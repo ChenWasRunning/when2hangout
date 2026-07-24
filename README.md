@@ -143,7 +143,7 @@ curl -H "x-owner-export-secret: your-owner-export-secret" \
   "https://xzkdkxgqttonaxtkwlnj.functions.supabase.co/owner-export?format=csv"
 ```
 
-每次 `submit-availability` 成功提交/更新，或 `clear-submission` 成功清空后，后端会尝试把最新表格发到 `OWNER_EMAIL`。邮件失败不会阻止用户提交。
+每次 `submit-availability` 成功提交/更新，或 `clear-submission` 成功清空后，后端会尝试把最新表格发到 `OWNER_EMAIL`。邮件表格按提交时间升序排列；邮件失败不会阻止用户提交。
 
 ## GitHub Pages 部署
 

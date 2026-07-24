@@ -64,4 +64,4 @@ EVENT_END_DATE = "2026-08-30";
 名字 | 提交时间 | 7.31 午 | 7.31 晚 | 8.1 午 | ...
 ```
 
-`owner-export` Edge Function 用 `OWNER_EXPORT_SECRET` 保护，返回 HTML 或 CSV。`submit-availability` 和 `clear-submission` 成功后会调用共享的 owner export helper；如果配置了 `RESEND_API_KEY`，后端会把最新 HTML 表格和 CSV 附件发送到 `OWNER_EMAIL`。
+`owner-export` Edge Function 用 `OWNER_EXPORT_SECRET` 保护，返回按提交时间升序排列的 HTML 或 CSV。`submit-availability` 和 `clear-submission` 成功后会调用共享的 owner export helper；如果配置了 `RESEND_API_KEY`，后端会把最新 HTML 表格和 CSV 附件发送到 `OWNER_EMAIL`。
