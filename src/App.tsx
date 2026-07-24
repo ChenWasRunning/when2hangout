@@ -5,8 +5,6 @@ import { SubmitPanel } from "./components/SubmitPanel";
 import { WeekTable } from "./components/WeekTable";
 import {
   buildWeeks,
-  EVENT_END_DATE,
-  EVENT_START_DATE,
   isValidMeal,
   slotKey,
 } from "./lib/dates";
@@ -345,13 +343,9 @@ export default function App({ api }: AppProps) {
   return (
     <main className="mx-auto max-w-5xl px-3 py-5 sm:px-6 sm:py-6">
       <header className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-        <p className="text-sm font-bold text-teal-800">微信群分享版</p>
-        <h1 className="mt-1 text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
+        <h1 className="text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-stone-700">
           请先输入你的名字，再选择7月27日至8月30日期间每周五、周六、周日有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期。完成选择后，请在页面底部点击提交。
-        </p>
-        <p className="mt-3 inline-flex rounded-full bg-teal-50 px-3 py-2 text-sm font-bold text-teal-900">
-          固定日期：{EVENT_START_DATE} 至 {EVENT_END_DATE}
         </p>
       </header>
 

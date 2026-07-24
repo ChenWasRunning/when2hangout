@@ -89,10 +89,7 @@ export function WeekTable({
           {week.days.map((day) => (
             <div
               key={day.date}
-              className={[
-                "min-w-0 rounded-md border p-1",
-                day.isWeekend ? "border-amber-300 bg-amber-50" : "border-stone-200 bg-stone-50",
-              ].join(" ")}
+              className="min-w-0 rounded-md border border-amber-300 bg-amber-50 p-1"
             >
               <div className="mb-1 min-h-11 text-center">
                 <div className="text-[11px] font-bold leading-4 text-stone-600">
@@ -133,12 +130,7 @@ export function WeekTable({
                 <th
                   key={day.date}
                   scope="col"
-                  className={[
-                    "rounded-md border px-3 py-3 text-sm",
-                    day.isWeekend
-                      ? "border-amber-300 bg-amber-50 text-amber-950"
-                      : "border-stone-200 bg-stone-50 text-stone-900",
-                  ].join(" ")}
+                  className="rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-950"
                 >
                   <span className="block">{day.weekdayName}</span>
                   <span className="block text-base font-black">{day.month}/{day.day}</span>
