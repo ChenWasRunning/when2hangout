@@ -46,9 +46,10 @@ EVENT_END_DATE = "2026-08-30";
 7. Edge Function 验证 token、姓名和 slots。
 8. Edge Function 哈希 token。
 9. Edge Function 调用 `submit_availability` RPC。
-10. RPC 在一次数据库函数调用内替换该参与者完整 availability。
+10. RPC 优先按 token 更新；如果 token 不匹配但名字已存在，则更新同名最近一条记录，并绑定当前设备 token。
+11. RPC 在一次数据库函数调用内替换该参与者完整 availability。
 
-顶部姓名搜索调用 `submission-by-name` Edge Function。它只用于加载同名最近一次提交到当前页面，方便用户参考和修改；保存仍然必须由用户点击底部提交按钮触发。
+顶部姓名搜索调用 `submission-by-name` Edge Function。它用于加载同名最近一次提交到当前页面；搜索成功后底部按钮显示“更新提交”。保存仍然必须由用户点击底部提交按钮触发。
 
 顶部“清空记录”调用 `clear-submission` Edge Function。前端必须提供当前姓名在本浏览器 localStorage 中保存的 participant token；后台只删除 token hash 和显示姓名同时匹配的记录，availability 通过外键级联删除。
 

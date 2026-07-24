@@ -118,7 +118,32 @@ describe("App 提交流程", () => {
     expect(await screen.findByText("已加载这个名字最近一次提交的时间表。")).toBeInTheDocument();
     expect(firstSlot("slot-2026-08-14:lunch")).toHaveAttribute("aria-pressed", "true");
     expect(firstSlot("slot-2026-08-15:dinner")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "更新提交" })).toBeInTheDocument();
     expect(api.submitAvailability).not.toHaveBeenCalled();
+  });
+
+  it("跨设备按姓名搜索后会用更新提交状态保存", async () => {
+    const user = userEvent.setup();
+    const api = createApi({
+      findSubmissionByName: vi.fn().mockResolvedValue({
+        displayName: "rc",
+        slots: [{ date: "2026-08-14", meal: "lunch" }],
+      }),
+    });
+    render(<App api={api} />);
+
+    await user.type(screen.getByLabelText("你的名字"), "rc");
+    await user.click(screen.getByRole("button", { name: "搜索" }));
+    expect(await screen.findByText("已加载这个名字最近一次提交的时间表。")).toBeInTheDocument();
+
+    await user.click(firstSlot("slot-2026-08-14:lunch"));
+    await user.click(firstSlot("slot-2026-08-15:dinner"));
+    await user.click(screen.getByRole("button", { name: "更新提交" }));
+
+    await waitFor(() => expect(api.submitAvailability).toHaveBeenCalledTimes(1));
+    const payload = vi.mocked(api.submitAvailability).mock.calls[0]?.[0] as SubmitPayload;
+    expect(payload.displayName).toBe("rc");
+    expect(payload.slots).toEqual([{ date: "2026-08-15", meal: "dinner" }]);
   });
 
   it("底部提交区不再出现姓名输入框", () => {

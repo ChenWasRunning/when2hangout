@@ -50,6 +50,7 @@ export default function App({ api }: AppProps) {
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [isClearLoading, setIsClearLoading] = useState(false);
+  const [loadedSubmissionName, setLoadedSubmissionName] = useState<string | null>(null);
   const [lockedWeekIndexes, setLockedWeekIndexes] = useState<Set<number>>(() => new Set());
   const paintModeRef = useRef<PaintMode | null>(null);
 
@@ -76,6 +77,7 @@ export default function App({ api }: AppProps) {
         setDisplayName(submission.displayName);
         setSelectedKeys(slotsToKeys(submission.slots));
         setIsExistingParticipant(true);
+        setLoadedSubmissionName(submission.displayName);
         saveParticipantTokenForName(submission.displayName, token);
         setRestoreMessage("已恢复你之前提交的结果。修改后请点击“更新提交”。");
       })
@@ -221,7 +223,8 @@ export default function App({ api }: AppProps) {
       setDisplayName(submission.displayName);
       setSelectedKeys(slotsToKeys(submission.slots));
       setSubmitState((current) => (current === "success" ? "idle" : current));
-      setIsExistingParticipant(Boolean(getParticipantTokenForName(submission.displayName)));
+      setIsExistingParticipant(true);
+      setLoadedSubmissionName(submission.displayName);
       setLookupMessage("已加载这个名字最近一次提交的时间表。");
     } catch (error) {
       if (error instanceof MissingSupabaseConfigError) {
@@ -269,6 +272,7 @@ export default function App({ api }: AppProps) {
       setDisplayName(normalizedName);
       setSelectedKeys(new Set());
       setIsExistingParticipant(false);
+      setLoadedSubmissionName(null);
       setSubmitState("idle");
       setLookupMessage("已清空这个名字的提交记录。");
     } catch (error) {
@@ -314,6 +318,7 @@ export default function App({ api }: AppProps) {
       saveParticipantTokenForName(normalizedName, participantToken);
       setDisplayName(normalizedName);
       setIsExistingParticipant(true);
+      setLoadedSubmissionName(normalizedName);
       setSubmitState("success");
       setSubmitError(null);
     } catch (error) {
@@ -371,7 +376,11 @@ export default function App({ api }: AppProps) {
           setDisplayName(value);
           setNameError(null);
           setLookupMessage(null);
-          setIsExistingParticipant(Boolean(getParticipantTokenForName(normalizeDisplayName(value))));
+          const normalizedName = normalizeDisplayName(value);
+          setLoadedSubmissionName((current) => (current === normalizedName ? current : null));
+          setIsExistingParticipant(
+            Boolean(getParticipantTokenForName(normalizedName)) || loadedSubmissionName === normalizedName,
+          );
           setSubmitState((current) => (current === "success" ? "idle" : current));
         }}
         onLookup={handleLookupByName}

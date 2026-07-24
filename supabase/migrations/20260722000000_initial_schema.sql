@@ -76,13 +76,38 @@ begin
     raise exception 'invalid slots payload';
   end if;
 
-  insert into public.participants (display_name, participant_token_hash)
-  values (btrim(p_display_name), p_token_hash)
-  on conflict (participant_token_hash)
-  do update set
-    display_name = excluded.display_name,
-    updated_at = now()
-  returning id into v_participant_id;
+  select id
+  into v_participant_id
+  from public.participants
+  where participant_token_hash = p_token_hash;
+
+  if found then
+    update public.participants
+    set
+      display_name = btrim(p_display_name),
+      updated_at = now()
+    where id = v_participant_id;
+  else
+    select id
+    into v_participant_id
+    from public.participants
+    where display_name = btrim(p_display_name)
+    order by updated_at desc
+    limit 1;
+
+    if found then
+      update public.participants
+      set
+        participant_token_hash = p_token_hash,
+        display_name = btrim(p_display_name),
+        updated_at = now()
+      where id = v_participant_id;
+    else
+      insert into public.participants (display_name, participant_token_hash)
+      values (btrim(p_display_name), p_token_hash)
+      returning id into v_participant_id;
+    end if;
+  end if;
 
   delete from public.availability
   where participant_id = v_participant_id;

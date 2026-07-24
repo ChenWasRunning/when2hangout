@@ -26,7 +26,7 @@
 - 点击提交前不会写入 Supabase。
 - 首次成功提交后，浏览器 localStorage 按姓名保存随机 participant token。
 - 数据库只保存 token 的服务端哈希，不保存原始 token。
-- 同一浏览器再次打开可恢复最近使用的提交；同一浏览器换一个新名字提交时，会作为新参与者统计，不会覆盖前一个名字。
+- 同一浏览器再次打开可恢复最近使用的提交；跨设备输入同一个名字并搜索后，可以更新这个名字最近一次提交，不会新增重复记录。
 - 统计页只展示总提交人数和每日午餐/晚餐人数矩阵，不公开姓名名单。
 
 ## 本地运行
@@ -187,13 +187,13 @@ Vercel 不需要改变 Supabase Edge Functions 的部署方式。
 participant_token_hash
 ```
 
-数据库启用 RLS，并撤销 anon/authenticated 对 `participants` 和 `availability` 的直接访问。普通前端用户不能直接读取 token hash、修改他人记录或删除他人数据。公开统计接口只返回人数矩阵。
+数据库启用 RLS，并撤销 anon/authenticated 对 `participants` 和 `availability` 的直接访问。普通前端用户不能直接读取 token hash、直接写表或删除他人数据。公开统计接口只返回人数矩阵。
 
 私有矩阵 view `owner_availability_matrix` 撤销了 anon/authenticated/public 权限，只给 service-role 查询。`owner-export` 还要求 `OWNER_EXPORT_SECRET`，不要把这个 secret 放进 GitHub 或前端。
 
-按姓名搜索只返回该姓名最近一次提交的显示姓名和可用时段，不返回 token hash、participant id 或其它内部字段。同名时返回最近更新的一份。
+按姓名搜索只返回该姓名最近一次提交的显示姓名和可用时段，不返回 token hash、participant id 或其它内部字段。同名时返回最近更新的一份。按当前产品设定，只要知道名字字符串，就可以跨设备更新这个名字最近一次提交。
 
-`submit_availability` RPC 会在一次数据库函数调用中更新参与者姓名、删除旧 availability、插入本次完整选择。这样更新提交时后台最终记录与本次完整提交一致。后台只接受固定范围内的周五、周六、周日 slot。
+`submit_availability` RPC 会优先按 token 更新；如果当前设备没有该名字的 token，但后台已经存在同名记录，则更新这个名字最近一次提交，并把它绑定到当前设备 token。随后删除旧 availability、插入本次完整选择。后台只接受固定范围内的周五、周六、周日 slot。
 
 `clear_submission` RPC 只会删除 token hash 和显示姓名同时匹配的 participant。availability 通过外键级联删除。
 
@@ -201,6 +201,7 @@ participant_token_hash
 
 - localStorage 被清除后，用户会被视为新参与者。
 - 第一版没有账号系统和找回功能。
+- 知道某个名字字符串的人可以更新这个名字最近一次提交；这是当前版本为了跨设备修改而接受的弱身份模型。
 - Edge Functions 允许公开调用，需要在生产环境结合 Supabase rate limit、域名限制或 WAF 策略。
 - 如果 token 泄露，持有者可以修改同一参与者提交。
 
@@ -237,7 +238,7 @@ npm run build
 - 点击提交前不保存
 - 提交成功/失败状态
 - participant token 恢复旧结果
-- 同一浏览器换名字提交时作为新参与者统计
+- 跨设备按姓名搜索后更新同名记录
 - 更新提交替换旧结果
 - 统计人数矩阵和浅色热度配色
 
