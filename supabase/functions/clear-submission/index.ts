@@ -1,5 +1,5 @@
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
-import { sendOwnerExportEmail } from "../_shared/ownerExport.ts";
+import { buildClearEmailSummary, sendOwnerExportEmail } from "../_shared/ownerExport.ts";
 import { createAdminClient } from "../_shared/supabaseAdmin.ts";
 import {
   hashParticipantToken,
@@ -36,7 +36,7 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: "没有找到可清空的提交记录" }, 404);
     }
 
-    await sendOwnerExportEmail(supabase, "清空记录").catch((emailError) => {
+    await sendOwnerExportEmail(supabase, "清空记录", buildClearEmailSummary(displayName)).catch((emailError) => {
       console.error(emailError);
     });
 

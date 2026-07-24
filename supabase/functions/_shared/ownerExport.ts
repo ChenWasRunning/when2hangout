@@ -1,4 +1,18 @@
 type OwnerExportRow = Record<string, string | number | null>;
+type Meal = "lunch" | "dinner";
+type SelectedSlot = {
+  date: string;
+  meal: Meal;
+};
+
+type DatabaseClient = {
+  from: (table: string) => any;
+};
+
+type EmailSummary = {
+  title: string;
+  lines: string[];
+};
 
 const exportColumns = [
   "名字",
@@ -72,6 +86,10 @@ export function renderOwnerExportHtml(rows: OwnerExportRow[], title = "聚会时
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #1c1917; }
     h1 { font-size: 22px; margin: 0 0 12px; }
     p { margin: 0 0 16px; color: #57534e; }
+    .summary { border: 1px solid #99f6e4; background: #f0fdfa; border-radius: 8px; padding: 12px 14px; margin: 0 0 16px; }
+    .summary h2 { font-size: 16px; margin: 0 0 8px; }
+    .summary ul { margin: 0; padding-left: 20px; }
+    .summary li { margin: 4px 0; }
     .table-wrap { overflow-x: auto; border: 1px solid #e7e5e4; border-radius: 8px; }
     table { border-collapse: collapse; min-width: 1280px; width: 100%; }
     th, td { border-bottom: 1px solid #e7e5e4; padding: 8px 10px; text-align: center; white-space: nowrap; }
@@ -88,6 +106,22 @@ export function renderOwnerExportHtml(rows: OwnerExportRow[], title = "聚会时
 </html>`;
 }
 
+export function renderOwnerExportEmailHtml(
+  rows: OwnerExportRow[],
+  title: string,
+  summary: EmailSummary,
+): string {
+  const summaryItems = summary.lines
+    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .join("");
+  const summaryHtml = `<section class="summary"><h2>${escapeHtml(summary.title)}</h2><ul>${summaryItems}</ul></section>`;
+
+  return renderOwnerExportHtml(rows, title).replace(
+    '<div class="table-wrap">',
+    `${summaryHtml}<div class="table-wrap">`,
+  );
+}
+
 export function renderOwnerExportCsv(rows: OwnerExportRow[]): string {
   const lines = [exportColumns.map(escapeCsv).join(",")];
   for (const row of rows) {
@@ -99,6 +133,10 @@ export function renderOwnerExportCsv(rows: OwnerExportRow[]): string {
 export async function sendOwnerExportEmail(
   supabase: Parameters<typeof fetchOwnerExportRows>[0],
   action: string,
+  summary: EmailSummary = {
+    title: "提交更新",
+    lines: ["有人提交或更新了时间。"],
+  },
 ): Promise<void> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
@@ -109,7 +147,7 @@ export async function sendOwnerExportEmail(
   const from = Deno.env.get("OWNER_EMAIL_FROM") ?? "When2Hangout <onboarding@resend.dev>";
   const rows = await fetchOwnerExportRows(supabase);
   const csv = renderOwnerExportCsv(rows);
-  const html = renderOwnerExportHtml(rows, `聚会时间填写列表｜${action}`);
+  const html = renderOwnerExportEmailHtml(rows, `聚会时间填写列表｜${action}`, summary);
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -120,7 +158,7 @@ export async function sendOwnerExportEmail(
     body: JSON.stringify({
       from,
       to: [ownerEmail],
-      subject: `聚会时间填写更新｜${action}｜${rows.length}人`,
+      subject: `聚会时间填写更新｜${summary.title}｜${rows.length}人`,
       html,
       attachments: [
         {
@@ -134,6 +172,76 @@ export async function sendOwnerExportEmail(
   if (!response.ok) {
     throw new Error(`owner export email failed: ${response.status} ${await response.text()}`);
   }
+}
+
+export async function fetchSubmissionSnapshot(
+  supabase: DatabaseClient,
+  options: { tokenHash: string; displayName: string },
+): Promise<{ displayName: string; slots: SelectedSlot[] } | null> {
+  const tokenResult = await supabase
+    .from("participants")
+    .select("id, display_name")
+    .eq("participant_token_hash", options.tokenHash)
+    .maybeSingle();
+
+  if (tokenResult?.error) {
+    throw tokenResult.error;
+  }
+
+  const participant = tokenResult?.data ?? (await fetchLatestParticipantByName(supabase, options.displayName));
+  if (!participant) {
+    return null;
+  }
+
+  const slots = await fetchAvailabilitySlots(supabase, participant.id);
+  return {
+    displayName: participant.display_name,
+    slots,
+  };
+}
+
+export function buildSubmissionEmailSummary(
+  displayName: string,
+  beforeSlots: SelectedSlot[] | null,
+  afterSlots: SelectedSlot[],
+): EmailSummary {
+  if (!beforeSlots) {
+    return {
+      title: `${displayName} 新增了日期填写`,
+      lines: [
+        `${displayName} 新增了日期填写。`,
+        `已选择：${formatSlotList(afterSlots)}`,
+      ],
+    };
+  }
+
+  const addedSlots = diffSlots(afterSlots, beforeSlots);
+  const removedSlots = diffSlots(beforeSlots, afterSlots);
+  const lines = [`${displayName} 修改了日期填写。`];
+
+  if (addedSlots.length > 0) {
+    lines.push(`新增：${formatSlotList(addedSlots)}`);
+  }
+
+  if (removedSlots.length > 0) {
+    lines.push(`取消：${formatSlotList(removedSlots)}`);
+  }
+
+  if (addedSlots.length === 0 && removedSlots.length === 0) {
+    lines.push("选择内容没有变化。");
+  }
+
+  return {
+    title: `${displayName} 修改了日期填写`,
+    lines,
+  };
+}
+
+export function buildClearEmailSummary(displayName: string): EmailSummary {
+  return {
+    title: `${displayName} 清空了日期填写`,
+    lines: [`${displayName} 清空了日期填写。`],
+  };
 }
 
 function escapeHtml(value: string): string {
@@ -166,6 +274,75 @@ function encodeBase64(value: string): string {
     binary += String.fromCharCode(byte);
   }
   return btoa(binary);
+}
+
+async function fetchLatestParticipantByName(
+  supabase: DatabaseClient,
+  displayName: string,
+): Promise<{ id: string; display_name: string } | null> {
+  const { data, error } = await supabase
+    .from("participants")
+    .select("id, display_name")
+    .eq("display_name", displayName)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function fetchAvailabilitySlots(
+  supabase: DatabaseClient,
+  participantId: string,
+): Promise<SelectedSlot[]> {
+  const { data, error } = await supabase
+    .from("availability")
+    .select("date, meal")
+    .eq("participant_id", participantId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).sort(compareSlots);
+}
+
+function diffSlots(leftSlots: SelectedSlot[], rightSlots: SelectedSlot[]): SelectedSlot[] {
+  const rightKeys = new Set(rightSlots.map(slotKey));
+  return leftSlots.filter((slot) => !rightKeys.has(slotKey(slot))).sort(compareSlots);
+}
+
+function formatSlotList(slots: SelectedSlot[]): string {
+  if (slots.length === 0) {
+    return "无";
+  }
+
+  return slots.map(formatSlot).join("，");
+}
+
+function formatSlot(slot: SelectedSlot): string {
+  const [, month, day] = slot.date.split("-");
+  return `${Number(month)}.${Number(day)} ${slot.meal === "lunch" ? "午" : "晚"}`;
+}
+
+function slotKey(slot: SelectedSlot): string {
+  return `${slot.date}:${slot.meal}`;
+}
+
+function compareSlots(a: SelectedSlot, b: SelectedSlot): number {
+  if (a.date !== b.date) {
+    return a.date.localeCompare(b.date);
+  }
+
+  if (a.meal === b.meal) {
+    return 0;
+  }
+
+  return a.meal === "lunch" ? -1 : 1;
 }
 
 function sortOwnerExportRows(rows: OwnerExportRow[]): OwnerExportRow[] {

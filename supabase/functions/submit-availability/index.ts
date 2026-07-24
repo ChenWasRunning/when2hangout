@@ -1,5 +1,9 @@
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
-import { sendOwnerExportEmail } from "../_shared/ownerExport.ts";
+import {
+  buildSubmissionEmailSummary,
+  fetchSubmissionSnapshot,
+  sendOwnerExportEmail,
+} from "../_shared/ownerExport.ts";
 import { createAdminClient } from "../_shared/supabaseAdmin.ts";
 import {
   hashParticipantToken,
@@ -24,6 +28,10 @@ Deno.serve(async (request) => {
     const participantTokenHash = await hashParticipantToken(participantToken);
 
     const supabase = createAdminClient();
+    const previousSubmission = await fetchSubmissionSnapshot(supabase, {
+      tokenHash: participantTokenHash,
+      displayName,
+    });
     const { error } = await supabase.rpc("submit_availability", {
       p_token_hash: participantTokenHash,
       p_display_name: displayName,
@@ -38,7 +46,8 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: "提交失败，请重试" }, 500);
     }
 
-    await sendOwnerExportEmail(supabase, "提交或更新").catch((emailError) => {
+    const summary = buildSubmissionEmailSummary(displayName, previousSubmission?.slots ?? null, slots);
+    await sendOwnerExportEmail(supabase, "提交或更新", summary).catch((emailError) => {
       console.error(emailError);
     });
 
