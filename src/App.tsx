@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NameLookupPanel } from "./components/NameLookupPanel";
 import { ResultsPage } from "./components/ResultsPage";
 import { SubmitPanel } from "./components/SubmitPanel";
+import { UnavailableOption } from "./components/UnavailableOption";
 import { WeekTable } from "./components/WeekTable";
 import { buildWeeks, isValidMeal, slotKey } from "./lib/dates";
 import { MissingSupabaseConfigError } from "./lib/api";
@@ -373,7 +374,7 @@ export default function App({ api }: AppProps) {
       <header className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
         <h1 className="text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-stone-700">
-          请先输入你的名字，再选择7月27日至8月30日期间每周五、周六、周日有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期；如果以上时间都不合适或这段时间在外地，可以在第五周末尾选择本次无法参与。完成选择后，请在页面底部点击提交。
+          请先输入你的名字，再选择7月27日至8月30日期间每周五、周六、周日有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期；如果以上时间都不合适或这段时间在外地，可以选择本次无法参与。完成选择后，请在页面底部点击提交。
         </p>
       </header>
 
@@ -428,18 +429,21 @@ export default function App({ api }: AppProps) {
               week={week}
               selectedKeys={selectedKeys}
               locked={lockedWeekIndexes.has(week.index)}
-              participationStatus={participationStatus}
               onToggle={handleToggle}
               onPaintStart={handlePaintStart}
               onPaintEnter={handlePaintEnter}
               onToggleLock={handleToggleWeekLock}
               onSelectWeek={handleSelectWeek}
               onClearWeek={handleClearWeek}
-              onToggleUnavailable={handleToggleUnavailable}
             />
           ))}
         </div>
       </section>
+
+      <UnavailableOption
+        selected={participationStatus === "unavailable"}
+        onToggle={handleToggleUnavailable}
+      />
 
       <div className="mt-6">
         <SubmitPanel

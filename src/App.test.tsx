@@ -102,7 +102,7 @@ describe("App 提交流程", () => {
     expect(api.submitAvailability).not.toHaveBeenCalled();
   });
 
-  it("第五周可以选择本次无法参与，并清空已选日期后提交", async () => {
+  it("可以选择独立的本次无法参与选项，并清空已选日期后提交", async () => {
     const user = userEvent.setup();
     const api = createApi();
     render(<App api={api} />);
