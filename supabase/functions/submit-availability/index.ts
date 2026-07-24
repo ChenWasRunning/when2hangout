@@ -1,4 +1,5 @@
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
+import { sendOwnerExportEmail } from "../_shared/ownerExport.ts";
 import { createAdminClient } from "../_shared/supabaseAdmin.ts";
 import {
   hashParticipantToken,
@@ -36,6 +37,10 @@ Deno.serve(async (request) => {
       console.error(error);
       return jsonResponse({ error: "提交失败，请重试" }, 500);
     }
+
+    await sendOwnerExportEmail(supabase, "提交或更新").catch((emailError) => {
+      console.error(emailError);
+    });
 
     return jsonResponse({ ok: true });
   } catch (error) {

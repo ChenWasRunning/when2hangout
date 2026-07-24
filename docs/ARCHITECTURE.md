@@ -55,3 +55,13 @@ EVENT_END_DATE = "2026-08-30";
 ## 统计流程
 
 统计页调用 `stats` Edge Function。Edge Function 调用 `get_public_stats` RPC，只返回每个固定 slot 的人数和总提交人数。前端只渲染聚合结果，不直接下载数据库表，也不公开参与者姓名。
+
+## 私有导出与邮件
+
+数据库 migration 创建 `owner_availability_matrix` view，把每个参与者展开为：
+
+```text
+名字 | 提交时间 | 7.31 午 | 7.31 晚 | 8.1 午 | ...
+```
+
+`owner-export` Edge Function 用 `OWNER_EXPORT_SECRET` 保护，返回 HTML 或 CSV。`submit-availability` 和 `clear-submission` 成功后会调用共享的 owner export helper；如果配置了 `RESEND_API_KEY`，后端会把最新 HTML 表格和 CSV 附件发送到 `OWNER_EMAIL`。

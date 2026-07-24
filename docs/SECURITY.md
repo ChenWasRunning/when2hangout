@@ -16,6 +16,10 @@ VITE_SUPABASE_ANON_KEY
 ```text
 SUPABASE_SERVICE_ROLE_KEY
 PARTICIPANT_TOKEN_PEPPER
+OWNER_EXPORT_SECRET
+RESEND_API_KEY
+OWNER_EMAIL
+OWNER_EMAIL_FROM
 ```
 
 service-role key 绝不能出现在前端代码、GitHub repository 或构建产物中。
@@ -51,6 +55,8 @@ sha256(PARTICIPANT_TOKEN_PEPPER + ":" + participantToken)
 “清空记录”不是按姓名任意删除。前端必须同时发送当前姓名和本浏览器保存的 participant token；Edge Function 哈希 token 后调用 `clear_submission` RPC，只删除 token hash 和显示姓名同时匹配的记录。
 
 公开统计页只返回人数矩阵，不返回参与者姓名。若要做到“姓名和备注只有组织者能看到”，应移除公开按姓名搜索，或将它改回仅依赖 localStorage participant token 的恢复机制。
+
+私有导出通过 `owner_availability_matrix` view 和 `owner-export` Edge Function 提供。该 view 撤销 anon/authenticated/public 权限，只给 service-role 查询；Edge Function 还要求 `OWNER_EXPORT_SECRET`。邮件通知使用 `RESEND_API_KEY`，失败只记录日志，不影响用户提交。
 
 ## Edge Functions
 

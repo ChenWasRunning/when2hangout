@@ -37,24 +37,17 @@ SUPABASE_SERVICE_ROLE_KEY
 请求需要带：
 
 ```text
-Authorization: Bearer <OWNER_EXPORT_SECRET>
+x-owner-export-secret: <OWNER_EXPORT_SECRET>
 ```
 
-函数返回完整私有数据：
+函数返回 HTML 表格或 CSV：
 
-```json
-{
-  "generatedAt": "2026-07-22T00:00:00.000Z",
-  "participants": [
-    {
-      "displayName": "小陈",
-      "remark": "不吃辣",
-      "slots": [
-        { "date": "2026-07-27", "meal": "lunch" }
-      ]
-    }
-  ]
-}
+```bash
+curl -H "x-owner-export-secret: $OWNER_EXPORT_SECRET" \
+  "https://xzkdkxgqttonaxtkwlnj.functions.supabase.co/owner-export"
+
+curl -H "x-owner-export-secret: $OWNER_EXPORT_SECRET" \
+  "https://xzkdkxgqttonaxtkwlnj.functions.supabase.co/owner-export?format=csv"
 ```
 
 不要返回 `participant_token_hash`，除非确实需要审计。

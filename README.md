@@ -89,9 +89,13 @@ supabase/migrations/20260722000000_initial_schema.sql
 
 ```bash
 supabase secrets set PARTICIPANT_TOKEN_PEPPER=replace-with-a-long-random-secret
+supabase secrets set OWNER_EXPORT_SECRET=replace-with-another-long-random-secret
+supabase secrets set OWNER_EMAIL=r.chen9792@gmail.com
+supabase secrets set RESEND_API_KEY=your-resend-api-key
+supabase secrets set OWNER_EMAIL_FROM="When2Hangout <your-verified-sender@example.com>"
 ```
 
-Supabase hosted Edge Functions 默认提供 `SUPABASE_URL` 和 legacy `SUPABASE_SERVICE_ROLE_KEY`。不要手动设置以 `SUPABASE_` 开头的 secret；CLI 会拒绝这类保留变量名。
+`RESEND_API_KEY` 和 `OWNER_EMAIL_FROM` 用于邮件通知；如果不设置 `RESEND_API_KEY`，提交仍会成功，只是不发邮件。Supabase hosted Edge Functions 默认提供 `SUPABASE_URL` 和 legacy `SUPABASE_SERVICE_ROLE_KEY`。不要手动设置以 `SUPABASE_` 开头的 secret；CLI 会拒绝这类保留变量名。
 
 部署函数：
 
@@ -100,6 +104,7 @@ supabase functions deploy submit-availability
 supabase functions deploy my-submission
 supabase functions deploy submission-by-name
 supabase functions deploy clear-submission
+supabase functions deploy owner-export
 supabase functions deploy stats
 ```
 
@@ -109,7 +114,36 @@ Edge Functions 用途：
 - `my-submission`：用 token 哈希读取当前浏览器参与者自己的提交。
 - `submission-by-name`：按显示姓名精确查找最近一次提交，便于换设备时加载参考。
 - `clear-submission`：用当前姓名和本浏览器保存的 token 清空对应提交记录。
+- `owner-export`：用 `OWNER_EXPORT_SECRET` 保护的私有导出接口，返回含姓名和具体时段的 HTML/CSV 表格。
 - `stats`：返回统计页需要的 count-only 聚合数据，不暴露姓名、token hash 或内部字段。
+
+## 私有填写列表
+
+Supabase SQL Editor 中可以直接查看私有矩阵：
+
+```sql
+select *
+from public.owner_availability_matrix;
+```
+
+格式类似：
+
+```text
+名字 | 提交时间 | 7.31 午 | 7.31 晚 | 8.1 午 | ...
+ID123 | 7.24 11:12 | 1 | 1 | 0 | ...
+```
+
+也可以用 Edge Function 导出 HTML 或 CSV：
+
+```bash
+curl -H "x-owner-export-secret: your-owner-export-secret" \
+  "https://xzkdkxgqttonaxtkwlnj.functions.supabase.co/owner-export"
+
+curl -H "x-owner-export-secret: your-owner-export-secret" \
+  "https://xzkdkxgqttonaxtkwlnj.functions.supabase.co/owner-export?format=csv"
+```
+
+每次 `submit-availability` 成功提交/更新，或 `clear-submission` 成功清空后，后端会尝试把最新表格发到 `OWNER_EMAIL`。邮件失败不会阻止用户提交。
 
 ## GitHub Pages 部署
 
@@ -154,6 +188,8 @@ participant_token_hash
 ```
 
 数据库启用 RLS，并撤销 anon/authenticated 对 `participants` 和 `availability` 的直接访问。普通前端用户不能直接读取 token hash、修改他人记录或删除他人数据。公开统计接口只返回人数矩阵。
+
+私有矩阵 view `owner_availability_matrix` 撤销了 anon/authenticated/public 权限，只给 service-role 查询。`owner-export` 还要求 `OWNER_EXPORT_SECRET`，不要把这个 secret 放进 GitHub 或前端。
 
 按姓名搜索只返回该姓名最近一次提交的显示姓名和可用时段，不返回 token hash、participant id 或其它内部字段。同名时返回最近更新的一份。
 
