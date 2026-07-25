@@ -28,7 +28,7 @@ export function NameLookupPanel({
       </h2>
       <p className="mt-1 text-sm leading-6 text-stone-600">
         如果你之前已经提交过，可以输入同一个名字并点击搜索，页面会加载最近一次提交的时间表。
-        名字可以是任意字符串，中英文、数字皆可，区分大小写，只用于追踪和修改你的填写时间，不会直接公开给其他人。
+        请输入你的名字，方便我们统计参与者，并在确定聚会时间后通知具体时间和地点；名字不会直接公开给其他人。
       </p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
