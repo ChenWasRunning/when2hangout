@@ -374,7 +374,7 @@ export default function App({ api }: AppProps) {
       <header className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
         <h1 className="text-3xl font-black text-stone-950 sm:text-4xl">聚会时间统计</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-stone-700">
-          请先输入你的名字，再选择7月27日至8月30日期间每周五、周六、周日有空的午餐和晚餐时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期；如果以上时间都不合适或这段时间在外地，可以选择本次无法参与。完成选择后，请在页面底部点击提交。
+          请先输入你的名字，再选择7月27日至8月30日期间每周五、周六、周日有空的午餐（默认12:00-14:00）和晚餐（默认18:30-20:30）时间。可以点击单个格子，也可以长按并拖拽涂抹来一次选中多个日期；如果以上时间都不合适或这段时间在外地，可以选择本次无法参与。完成选择后，请在页面底部点击提交。
         </p>
       </header>
 
