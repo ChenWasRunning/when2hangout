@@ -197,7 +197,9 @@ begin
 end;
 $$;
 
-create or replace view public.owner_availability_matrix as
+drop view if exists public.owner_availability_matrix;
+
+create view public.owner_availability_matrix as
 select
   p.display_name as "名字",
   to_char(p.updated_at at time zone 'Asia/Shanghai', 'FMMM.FMDD HH24:MI') as "提交时间",
